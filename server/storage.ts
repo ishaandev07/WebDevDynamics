@@ -185,7 +185,7 @@ export class DatabaseStorage implements IStorage {
 
     return {
       totalProjects: userProjects.length,
-      successfulDeployments: userDeployments.filter(d => d.status === 'deployed').length,
+      successfulDeployments: userDeployments.filter(d => d.status === 'success').length,
       failedDeployments: userDeployments.filter(d => d.status === 'failed').length,
       inProgressDeployments: userDeployments.filter(d => ['pending', 'building', 'deploying'].includes(d.status)).length,
     };
