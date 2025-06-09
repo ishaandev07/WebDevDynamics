@@ -8,6 +8,7 @@ import {
   serial,
   boolean,
   integer,
+  decimal,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -30,6 +31,10 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  subscriptionTier: varchar("subscription_tier").default("free"), // free, pro
+  deploymentCredits: integer("deployment_credits").default(0),
+  escalationCredits: integer("escalation_credits").default(0),
+  subscriptionEndsAt: timestamp("subscription_ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -60,6 +65,23 @@ export const deployments = pgTable("deployments", {
   logs: text("logs"),
   deploymentUrl: varchar("deployment_url"),
   errorMessage: text("error_message"),
+  tier: varchar("tier").default("free"), // free, paid
+  paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
+  cost: decimal("cost", { precision: 10, scale: 2 }).default("0.00"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Transactions table for payment tracking
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  type: varchar("type").notNull(), // deployment, subscription, escalation
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status").default("pending"), // pending, completed, failed, refunded
+  stripePaymentIntentId: varchar("stripe_payment_intent_id"),
+  deploymentId: integer("deployment_id").references(() => deployments.id),
+  description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

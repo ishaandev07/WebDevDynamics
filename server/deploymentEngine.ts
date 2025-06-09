@@ -502,8 +502,20 @@ echo "🎉 Deployment successful!"`;
       
       // Try to serve HTML first
       try {
-        const htmlContent = await fs.readFile(indexPath, 'utf-8');
-        res.setHeader('Content-Type', 'text/html');
+        let htmlContent = await fs.readFile(indexPath, 'utf-8');
+        
+        // Ensure proper asset paths for the deployed environment
+        htmlContent = htmlContent.replace(
+          /href="([^"]+\.(css|ico))"/g, 
+          `href="/deployed/${deploymentId}/$1"`
+        );
+        htmlContent = htmlContent.replace(
+          /src="([^"]+\.(js|png|jpg|jpeg|gif|svg))"/g, 
+          `src="/deployed/${deploymentId}/$1"`
+        );
+        
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache');
         res.send(htmlContent);
         return;
       } catch (htmlError) {

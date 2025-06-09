@@ -5,9 +5,6 @@ set -e
 
 echo "🚀 Starting deployment 1..."
 
-# Pull latest changes (if applicable)
-echo "📦 Building application..."
-
 # Build the Docker image
 docker build -t deployment-1 .
 
