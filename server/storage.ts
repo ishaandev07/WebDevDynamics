@@ -3,6 +3,7 @@ import {
   projects,
   deployments,
   chatMessages,
+  transactions,
   type User,
   type UpsertUser,
   type Project,
@@ -11,6 +12,8 @@ import {
   type InsertDeployment,
   type ChatMessage,
   type InsertChatMessage,
+  type Transaction,
+  type InsertTransaction,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -37,6 +40,14 @@ export interface IStorage {
   // Chat operations
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
   getChatMessages(userId: string, projectId?: number): Promise<ChatMessage[]>;
+  
+  // Transaction operations
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  updateTransaction(id: number, updates: Partial<Transaction>): Promise<Transaction | undefined>;
+  getTransactionsByUser(userId: string): Promise<Transaction[]>;
+  
+  // User update operations
+  updateUser(id: string, updates: Partial<User>): Promise<User | undefined>;
   
   // Stats operations
   getUserStats(userId: string): Promise<{
@@ -189,6 +200,42 @@ export class DatabaseStorage implements IStorage {
       failedDeployments: userDeployments.filter(d => d.status === 'failed').length,
       inProgressDeployments: userDeployments.filter(d => ['pending', 'building', 'deploying'].includes(d.status)).length,
     };
+  }
+
+  // Transaction operations
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db
+      .insert(transactions)
+      .values(transaction)
+      .returning();
+    return newTransaction;
+  }
+
+  async updateTransaction(id: number, updates: Partial<Transaction>): Promise<Transaction | undefined> {
+    const [updated] = await db
+      .update(transactions)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(transactions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async getTransactionsByUser(userId: string): Promise<Transaction[]> {
+    return await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.userId, userId))
+      .orderBy(desc(transactions.createdAt));
+  }
+
+  // User update operations
+  async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
   }
 }
 
