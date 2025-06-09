@@ -276,30 +276,91 @@ export class AIAssistant {
     message: string, 
     context?: { project?: any; deployments?: any[] }
   ): Promise<string> {
-    // Simple rule-based responses
     const lowerMessage = message.toLowerCase();
 
+    // Project-specific responses
+    if (context?.project) {
+      const project = context.project;
+      const deployments = context.deployments || [];
+      
+      if (lowerMessage.includes('status') || lowerMessage.includes('how is')) {
+        const latestDeployment = deployments[0];
+        let statusInfo = `Your ${project.framework || 'project'} "${project.name}" is currently ${project.status}.`;
+        
+        if (latestDeployment) {
+          statusInfo += ` Latest deployment is ${latestDeployment.status}.`;
+          if (latestDeployment.deploymentUrl) {
+            statusInfo += ` Available at: ${latestDeployment.deploymentUrl}`;
+          }
+        }
+        
+        if (project.status === 'analyzed' && project.analysisResult) {
+          const analysis = typeof project.analysisResult === 'string' 
+            ? JSON.parse(project.analysisResult) 
+            : project.analysisResult;
+          statusInfo += `\n\nFramework: ${analysis.framework}\nConfidence: ${(analysis.confidence * 100).toFixed(0)}%`;
+          
+          if (analysis.issues && analysis.issues.length > 0) {
+            statusInfo += `\nIssues found: ${analysis.issues.join(', ')}`;
+          }
+        }
+        
+        return statusInfo;
+      }
+      
+      if (lowerMessage.includes('deploy') && project.status === 'analyzed') {
+        return `Ready to deploy "${project.name}"! Based on analysis:\n• Framework: ${project.framework}\n• Build: ${project.buildCommand || 'Not required'}\n• Start: ${project.startCommand || 'Auto-detected'}\n\nClick "Create Deployment" to proceed.`;
+      }
+      
+      if (lowerMessage.includes('issues') || lowerMessage.includes('problems')) {
+        if (project.analysisResult) {
+          const analysis = typeof project.analysisResult === 'string' 
+            ? JSON.parse(project.analysisResult) 
+            : project.analysisResult;
+          
+          if (analysis.issues && analysis.issues.length > 0) {
+            return `Issues detected in "${project.name}":\n${analysis.issues.map((issue: string, i: number) => `${i + 1}. ${issue}`).join('\n')}\n\nRecommendations:\n${analysis.recommendations?.map((rec: string, i: number) => `${i + 1}. ${rec}`).join('\n') || 'No specific recommendations available.'}`;
+          }
+          return `No issues detected in "${project.name}". Project looks good for deployment!`;
+        }
+        return `Analysis pending for "${project.name}". Please wait for analysis to complete.`;
+      }
+    }
+
+    // General help responses
+    if (lowerMessage.includes('help') || lowerMessage.includes('what can you')) {
+      return "I can help you with:\n• Analyzing uploaded projects (ZIP files or folders)\n• Detecting frameworks and dependencies\n• Providing deployment guidance\n• Troubleshooting deployment issues\n• Generating configuration files\n• Monitoring deployment status\n\nJust ask me about any of these topics!";
+    }
+
     if (lowerMessage.includes('analyze') || lowerMessage.includes('upload')) {
-      return "I can help analyze your uploaded projects! Upload a .zip file and I'll detect the framework, dependencies, and provide deployment recommendations.";
+      return "Upload your project as a ZIP file or drag & drop a folder! I'll analyze it to:\n• Detect the framework (React, Python, Node.js, etc.)\n• Extract dependencies\n• Identify entry points\n• Generate build/start commands\n• Suggest deployment configurations\n\nSupported formats: ZIP files up to 100MB, or complete project folders.";
+    }
+
+    if (lowerMessage.includes('folder') || lowerMessage.includes('drag')) {
+      return "Folder uploads now supported! You can:\n• Drag & drop entire project folders\n• Preserve directory structure\n• Upload multiple files at once\n• Get better analysis than ZIP files\n\nJust click 'Upload Folder' or drag your project folder to the upload area.";
     }
 
     if (lowerMessage.includes('deploy') || lowerMessage.includes('deployment')) {
-      return "For deployment, I recommend:\n1. Ensure your app binds to 0.0.0.0 and port 8080\n2. Include all dependency files\n3. Set environment variables properly\n4. Test locally before deploying";
+      return "Deployment best practices:\n• Ensure your app binds to 0.0.0.0:8080\n• Include all dependency files (package.json, requirements.txt)\n• Set environment variables correctly\n• Use production-ready server configurations\n• Test locally before deploying\n\nI'll analyze your project and provide specific deployment guidance!";
     }
 
-    if (lowerMessage.includes('error') || lowerMessage.includes('fail')) {
-      return "Common deployment issues:\n• Port binding problems - use 0.0.0.0:8080\n• Missing dependencies - check package.json/requirements.txt\n• Environment variables not set\n• File permissions issues";
+    if (lowerMessage.includes('error') || lowerMessage.includes('fail') || lowerMessage.includes('broken')) {
+      return "Common deployment issues:\n• Port binding: Use 0.0.0.0:8080, not localhost\n• Dependencies: Ensure package.json/requirements.txt is complete\n• Environment variables: Check all required vars are set\n• File permissions: Verify execute permissions on scripts\n• Build process: Make sure build completes successfully\n\nShare your error logs for specific troubleshooting!";
     }
 
-    if (lowerMessage.includes('config') || lowerMessage.includes('setup')) {
-      return "I can generate configuration files for your deployment. Upload your project and I'll create the necessary .replit, .env, and other config files automatically.";
+    if (lowerMessage.includes('config') || lowerMessage.includes('setup') || lowerMessage.includes('replit')) {
+      return "I can generate configuration files for your deployment:\n• .replit file for Replit deployment\n• .env for environment variables\n• Dockerfile for containerization\n• package.json scripts optimization\n• Server configuration files\n\nUpload your project and I'll create the necessary configs automatically!";
     }
 
-    if (context?.project) {
-      return `Your ${context.project.framework || 'project'} "${context.project.name}" is currently ${context.project.status}. You can view deployment status in the deployments section.`;
+    if (lowerMessage.includes('framework') || lowerMessage.includes('detect')) {
+      return "I can detect these frameworks:\n• JavaScript: React, Vue, Angular, Node.js, Express, Next.js\n• Python: FastAPI, Django, Flask\n• Java: Spring Boot\n• PHP: Laravel\n• And more!\n\nDetection is based on dependency files, imports, and project structure.";
     }
 
-    return "I'm here to help with your deployment needs! I can analyze code, suggest configurations, and troubleshoot deployment issues. What would you like help with?";
+    if (lowerMessage.includes('tutorial') || lowerMessage.includes('guide') || lowerMessage.includes('how to')) {
+      return "Complete deployment guides available:\n• Check DEPLOYMENT_TUTORIAL.md for step-by-step instructions\n• BACKEND_CODE_TUTORIAL.md explains the architecture\n• Each analyzed project gets custom deployment guidance\n\nWhat specific aspect would you like help with?";
+    }
+
+    return "I'm your deployment assistant! I can analyze projects, detect frameworks, provide deployment guidance, and troubleshoot issues. Upload a project to get started, or ask me about:\n• Project analysis\n• Framework detection\n• Deployment best practices\n• Error troubleshooting\n• Configuration generation\n\nWhat would you like help with?";
   }
 
   async debugDeploymentError(errorLogs: string, framework: string): Promise<string> {
