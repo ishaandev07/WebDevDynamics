@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { aiAssistant } from "./openai";
 import { fileStorage } from "./fileStorage";
+import { deploymentEngine } from "./deploymentEngine";
 import { insertProjectSchema, insertDeploymentSchema, insertChatMessageSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -352,19 +353,9 @@ async function startDeploymentAsync(deploymentId: number) {
     // For demo purposes, randomly succeed or fail
     const success = Math.random() > 0.3; // 70% success rate
 
-    if (success) {
-      await storage.updateDeployment(deploymentId, { 
-        status: 'deployed',
-        logs: deployment.logs + 'Deployment completed successfully!\n',
-        deploymentUrl: `https://app-${deploymentId}.example.com`
-      });
-    } else {
-      await storage.updateDeployment(deploymentId, { 
-        status: 'failed',
-        logs: deployment.logs + 'Deployment failed: Port binding error\n',
-        errorMessage: 'Failed to bind to port 8080'
-      });
-    }
+    // Use deployment engine for realistic deployment simulation
+    await deploymentEngine.createDeploymentFiles(deploymentId);
+    await deploymentEngine.simulateDeployment(deploymentId);
 
   } catch (error) {
     console.error(`Deployment failed for deployment ${deploymentId}:`, error);
