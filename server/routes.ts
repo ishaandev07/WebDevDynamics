@@ -456,6 +456,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Payment routes for monetization system
+  app.post('/api/payments/create-intent', isAuthenticated, async (req: any, res) => {
+    try {
+      const { type, amount } = req.body;
+      const userId = req.user.claims.sub;
+      
+      // Create transaction record
+      const transaction = await storage.createTransaction({
+        userId,
+        type,
+        amount,
+        status: 'pending',
+        description: `${type === 'deployment' ? 'Pay-as-you-deploy' : type === 'escalation' ? 'Human expert escalation' : 'Subscription'} payment`
+      });
+
+      // Simulate payment success for demo
+      await storage.updateTransaction(transaction.id, { status: 'completed' });
+      
+      if (type === 'deployment') {
+        const user = await storage.getUser(userId);
+        await storage.updateUser(userId, { deploymentCredits: (user?.deploymentCredits || 0) + 1 });
+      } else if (type === 'escalation') {
+        const user = await storage.getUser(userId);
+        await storage.updateUser(userId, { escalationCredits: (user?.escalationCredits || 0) + 1 });
+      }
+
+      res.json({ 
+        success: true, 
+        transactionId: transaction.id,
+        message: `Payment of $${amount} processed successfully`
+      });
+    } catch (error) {
+      console.error('Payment error:', error);
+      res.status(500).json({ error: 'Payment processing failed' });
+    }
+  });
+
+  app.post('/api/payments/subscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const { plan } = req.body;
+      const userId = req.user.claims.sub;
+      
+      if (plan === 'pro') {
+        const subscriptionEndsAt = new Date();
+        subscriptionEndsAt.setMonth(subscriptionEndsAt.getMonth() + 1);
+        
+        await storage.updateUser(userId, { 
+          subscriptionTier: 'pro',
+          subscriptionEndsAt 
+        });
+
+        await storage.createTransaction({
+          userId,
+          type: 'subscription',
+          amount: '15.00',
+          status: 'completed',
+          description: 'Pro subscription monthly payment'
+        });
+
+        res.json({ success: true, message: 'Upgraded to Pro subscription' });
+      } else {
+        res.status(400).json({ error: 'Invalid plan type' });
+      }
+    } catch (error) {
+      console.error('Subscription error:', error);
+      res.status(500).json({ error: 'Subscription failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

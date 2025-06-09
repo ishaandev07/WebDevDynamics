@@ -67,7 +67,7 @@ export const deployments = pgTable("deployments", {
   errorMessage: text("error_message"),
   tier: varchar("tier").default("free"), // free, paid
   paymentStatus: varchar("payment_status").default("pending"), // pending, paid, failed
-  cost: decimal("cost", { precision: 10, scale: 2 }).default("0.00"),
+  cost: varchar("cost").default("0.00"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -77,7 +77,7 @@ export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").references(() => users.id).notNull(),
   type: varchar("type").notNull(), // deployment, subscription, escalation
-  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  amount: varchar("amount").notNull(),
   status: varchar("status").default("pending"), // pending, completed, failed, refunded
   stripePaymentIntentId: varchar("stripe_payment_intent_id"),
   deploymentId: integer("deployment_id").references(() => deployments.id),
