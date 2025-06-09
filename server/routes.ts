@@ -345,10 +345,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add deployment preview route for demonstration  
+  // Add comprehensive deployment serving route
   app.get('/deployed/:id', async (req, res) => {
     try {
       const deploymentId = parseInt(req.params.id);
+      
+      if (isNaN(deploymentId)) {
+        return res.status(400).send('Invalid deployment ID');
+      }
+      
       const deployment = await storage.getDeployment(deploymentId);
       
       if (!deployment) {
@@ -360,139 +365,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send('Project not found');
       }
 
-      // Get actual project files and serve them
-      const files = await fileStorage.extractZipContents(project.fileName);
+      // Process and optimize the deployment
+      await deploymentEngine.processAndOptimizeProject(deploymentId, project);
       
-      if (files.length === 0) {
-        return res.status(404).send('No project files found');
-      }
-
-      // Find the main file (index.html, app.js, main.py, etc.)
-      const indexFile = files.find(f => 
-        f.name.toLowerCase() === 'index.html' || 
-        f.name.toLowerCase() === 'app.html' ||
-        f.name.toLowerCase() === 'home.html'
-      );
-
-      if (indexFile) {
-        // If HTML file exists, serve it directly
-        res.setHeader('Content-Type', 'text/html');
-        return res.send(indexFile.content);
-      }
-
-      // Otherwise, create a file browser interface
-      const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${project.name} - Project Files</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
-            background: #0d1117; color: #c9d1d9; 
-            line-height: 1.6; padding: 20px; min-height: 100vh;
-        }
-        .header { 
-            background: #161b22; padding: 24px; border-radius: 8px; margin-bottom: 24px;
-            border: 1px solid #30363d; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
-        .project-title { 
-            font-size: 2rem; color: #58a6ff; margin-bottom: 8px; 
-            display: flex; align-items: center; gap: 12px;
-        }
-        .project-info { color: #7c3aed; font-size: 14px; margin-bottom: 16px; }
-        .nav-btn { 
-            background: #238636; color: white; padding: 8px 16px; 
-            border: none; border-radius: 6px; cursor: pointer; margin-right: 8px;
-            transition: background 0.2s ease;
-        }
-        .nav-btn:hover { background: #2ea043; }
-        .file-list { 
-            background: #161b22; padding: 24px; border-radius: 8px; margin-bottom: 24px;
-            border: 1px solid #30363d;
-        }
-        .file-list h3 { color: #f0f6fc; margin-bottom: 16px; font-size: 18px; }
-        .file-item { 
-            padding: 12px 16px; border-bottom: 1px solid #21262d; cursor: pointer;
-            transition: background 0.2s ease; border-radius: 6px; margin-bottom: 4px;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .file-item:hover { background: #21262d; }
-        .file-item:last-child { border-bottom: none; }
-        .file-name { color: #58a6ff; font-weight: 500; }
-        .file-size { color: #7d8590; font-size: 12px; }
-        .file-content { 
-            background: #0d1117; padding: 24px; border-radius: 8px; margin-top: 24px;
-            white-space: pre-wrap; font-size: 14px; max-height: 600px; overflow-y: auto;
-            border: 1px solid #30363d; font-family: 'Monaco', 'Menlo', monospace;
-        }
-        .file-viewer { 
-            background: #161b22; padding: 24px; border-radius: 8px;
-            border: 1px solid #30363d;
-        }
-        .file-viewer h3 { color: #f0f6fc; margin-bottom: 16px; }
-        .hidden { display: none; }
-        .file-extension { 
-            background: #1f2937; color: #9ca3af; padding: 2px 6px; 
-            border-radius: 4px; font-size: 11px; margin-left: 8px;
-        }
-        .deploy-info { 
-            background: linear-gradient(45deg, rgba(76, 175, 80, 0.1), rgba(33, 150, 243, 0.1));
-            padding: 20px; border-radius: 10px; margin: 20px 0;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="project-title">📁 ${project.name}</div>
-        <div class="project-info">Framework: ${project.framework || 'Unknown'} • Files: ${files.length} • Status: Deployed</div>
-        <button class="nav-btn" onclick="window.close()">← Back to Dashboard</button>
-    </div>
-
-    <div class="file-list">
-        <h3>Project Files:</h3>
-        ${files.map((file, index) => `
-        <div class="file-item" onclick="showFile(${index})">
-            <div>
-                <div class="file-name">${file.name}</div>
-                <span class="file-extension">${file.name.split('.').pop()?.toUpperCase() || 'FILE'}</span>
-            </div>
-            <div class="file-size">${(file.size / 1024).toFixed(1)} KB</div>
-        </div>
-        `).join('')}
-    </div>
-
-    <div id="file-viewer" class="file-viewer hidden">
-        <h3>File Content:</h3>
-        <div id="file-content" class="file-content"></div>
-    </div>
-
-    <script>
-        const files = ${JSON.stringify(files)};
-        
-        function showFile(index) {
-            const file = files[index];
-            const viewer = document.getElementById('file-viewer');
-            const content = document.getElementById('file-content');
-            
-            content.textContent = file.content;
-            viewer.classList.remove('hidden');
-            
-            // Scroll to viewer
-            viewer.scrollIntoView({ behavior: 'smooth' });
-        }
-    </script>
-</body>
-</html>`;
-
-      res.send(html);
+      // Serve the optimized deployment
+      await deploymentEngine.serveDeployment(deploymentId, req, res);
+      
     } catch (error) {
-      console.error('Error serving deployment preview:', error);
+      console.error('Error serving deployment:', error);
       res.status(500).send('Error loading deployment');
+    }
+  });
+
+  // Add static file serving for deployments
+  app.get('/deployed/:id/assets/*', async (req, res) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const assetPath = req.params[0];
+      
+      if (isNaN(deploymentId)) {
+        return res.status(400).send('Invalid deployment ID');
+      }
+      
+      await deploymentEngine.serveAsset(deploymentId, assetPath, res);
+    } catch (error) {
+      console.error('Error serving asset:', error);
+      res.status(404).send('Asset not found');
     }
   });
 
