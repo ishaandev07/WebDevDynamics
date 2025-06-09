@@ -41,17 +41,38 @@ export class FileStorageService {
       // Create extraction directory
       await fs.promises.mkdir(extractDir, { recursive: true });
 
-      // Extract zip file using unzip command (available in most Linux environments)
-      await execAsync(`cd "${extractDir}" && unzip -q "${filePath}"`);
+      // Check if the file exists and is readable
+      await fs.promises.access(filePath, fs.constants.R_OK);
+      
+      console.log(`Extracting ${filePath} to ${extractDir}`);
+
+      // Extract zip file using unzip command with better error handling
+      try {
+        await execAsync(`unzip -q "${filePath}" -d "${extractDir}"`);
+      } catch (unzipError: any) {
+        console.error('Unzip command failed:', unzipError);
+        // Try alternative extraction method
+        console.log('Attempting alternative extraction...');
+        await execAsync(`cd "${extractDir}" && unzip -o "${filePath}"`);
+      }
 
       // Read extracted files
       const files = await this.readDirectoryFiles(extractDir);
+      
+      console.log(`Successfully extracted ${files.length} files from ${fileName}`);
       
       // Clean up extraction directory after reading
       await this.removeDirectory(extractDir);
 
       return files;
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error in extractZipContents:', error);
+      // Clean up on error
+      try {
+        await this.removeDirectory(extractDir);
+      } catch (cleanupError) {
+        console.error('Error cleaning up extraction directory:', cleanupError);
+      }
       throw new Error(`Failed to extract zip file: ${error.message}`);
     }
   }

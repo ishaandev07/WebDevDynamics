@@ -250,7 +250,26 @@ CMD ["./deploy.sh"]`;
   private async prepareProjectFiles(deploymentPath: string, project: any): Promise<void> {
     // Extract project files to deployment directory
     try {
-      const files = await fileStorage.extractZipContents(project.filePath);
+      console.log(`Preparing project files for deployment. Project:`, {
+        id: project.id,
+        name: project.name,
+        fileName: project.fileName
+      });
+      
+      // Check if the project file exists
+      const projectFilePath = fileStorage.getFilePath(project.fileName);
+      console.log(`Looking for project file at: ${projectFilePath}`);
+      
+      try {
+        await fs.access(projectFilePath);
+        console.log('Project file found, proceeding with extraction');
+      } catch (fileError) {
+        console.error('Project file not found:', fileError);
+        throw new Error(`Project file ${project.fileName} not found at ${projectFilePath}`);
+      }
+      
+      const files = await fileStorage.extractZipContents(project.fileName);
+      console.log(`Successfully extracted ${files.length} files from project`);
       
       for (const file of files) {
         const filePath = path.join(deploymentPath, file.name);
@@ -259,9 +278,11 @@ CMD ["./deploy.sh"]`;
         await fs.mkdir(fileDir, { recursive: true });
         await fs.writeFile(filePath, file.content);
       }
+      
+      console.log(`Successfully prepared ${files.length} project files for deployment`);
     } catch (error) {
       console.error('Error preparing project files:', error);
-      throw new Error('Failed to prepare project files for deployment');
+      throw new Error(`Failed to prepare project files for deployment: ${error.message}`);
     }
   }
 

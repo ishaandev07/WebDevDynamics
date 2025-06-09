@@ -1,0 +1,15 @@
+language = "nodejs"
+run = "npm start"
+entrypoint = "index.html"
+hidden = [
+  ".config",
+  "node_modules",
+  ".git"
+]
+compile = "npm run build"
+env = {
+  "NODE_ENV": "production",
+  "PORT": "8080",
+  "CI": "false",
+  "GENERATE_SOURCEMAP": "false"
+}
