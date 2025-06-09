@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiRequest } from '@/lib/queryClient';
 import { isUnauthorizedError } from '@/lib/authUtils';
-import { CloudUpload, FileText, X } from 'lucide-react';
+import { CloudUpload, FileText, X, Folder, Archive } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -16,9 +16,12 @@ interface FileUploadProps {
 
 export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [uploadType, setUploadType] = useState<'zip' | 'folder' | null>(null);
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -68,9 +71,12 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
   });
 
   const resetForm = () => {
-    setSelectedFile(null);
+    setSelectedFiles(null);
+    setUploadType(null);
     setProjectName('');
     setProjectDescription('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (folderInputRef.current) folderInputRef.current.value = '';
   };
 
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -88,28 +94,33 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      if (file.name.endsWith('.zip')) {
-        setSelectedFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = e.dataTransfer.files;
+      
+      // Check if it's a single zip file
+      if (files.length === 1 && files[0].name.endsWith('.zip')) {
+        setSelectedFiles(files);
+        setUploadType('zip');
         if (!projectName) {
-          setProjectName(file.name.replace('.zip', ''));
+          setProjectName(files[0].name.replace('.zip', ''));
         }
       } else {
-        toast({
-          title: "Invalid File Type",
-          description: "Please upload a .zip file",
-          variant: "destructive",
-        });
+        // Multiple files or folder upload
+        setSelectedFiles(files);
+        setUploadType('folder');
+        if (!projectName) {
+          setProjectName('Project-' + Date.now());
+        }
       }
     }
   }, [projectName, toast]);
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleZipFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       if (file.name.endsWith('.zip')) {
-        setSelectedFile(file);
+        setSelectedFiles(e.target.files);
+        setUploadType('zip');
         if (!projectName) {
           setProjectName(file.name.replace('.zip', ''));
         }
@@ -123,13 +134,27 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
     }
   };
 
+  const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFiles(e.target.files);
+      setUploadType('folder');
+      if (!projectName) {
+        // Extract folder name from first file path
+        const firstFile = e.target.files[0];
+        const pathParts = firstFile.webkitRelativePath?.split('/') || [];
+        const folderName = pathParts[0] || 'Project-' + Date.now();
+        setProjectName(folderName);
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedFile) {
+    if (!selectedFiles || selectedFiles.length === 0) {
       toast({
-        title: "No File Selected",
-        description: "Please select a .zip file to upload",
+        title: "No Files Selected",
+        description: "Please select files or a folder to upload",
         variant: "destructive",
       });
       return;
@@ -145,9 +170,20 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
     }
 
     const formData = new FormData();
-    formData.append('file', selectedFile);
+    
+    if (uploadType === 'zip') {
+      formData.append('file', selectedFiles[0]);
+    } else {
+      // For folder uploads, append all files with their relative paths
+      Array.from(selectedFiles).forEach((file) => {
+        formData.append('files', file);
+        formData.append('paths', file.webkitRelativePath || file.name);
+      });
+    }
+    
     formData.append('name', projectName.trim());
     formData.append('description', projectDescription.trim());
+    formData.append('uploadType', uploadType || 'folder');
 
     uploadMutation.mutate(formData);
   };
