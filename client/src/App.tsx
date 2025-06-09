@@ -11,6 +11,7 @@ import Upload from "@/pages/upload";
 import ProjectDetails from "@/pages/project-details";
 import Deployments from "@/pages/deployments";
 import Settings from "@/pages/settings";
+import Pricing from "@/pages/pricing";
 import Navigation from "@/components/layout/navigation";
 import Sidebar from "@/components/layout/sidebar";
 import ChatSidebar from "@/components/layout/chat-sidebar";
@@ -38,6 +39,7 @@ function Router() {
             <Route path="/upload" component={Upload} />
             <Route path="/projects/:id" component={ProjectDetails} />
             <Route path="/deployments" component={Deployments} />
+            <Route path="/pricing" component={Pricing} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
           </Switch>

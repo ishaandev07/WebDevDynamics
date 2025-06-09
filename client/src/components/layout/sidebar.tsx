@@ -6,7 +6,8 @@ import {
   Server, 
   Bot, 
   Settings,
-  Star
+  Star,
+  CreditCard
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
@@ -14,6 +15,7 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Upload Project', href: '/upload', icon: Upload },
   { name: 'Deployments', href: '/deployments', icon: Server },
+  { name: 'Pricing', href: '/pricing', icon: CreditCard },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
