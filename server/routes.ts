@@ -286,7 +286,7 @@ async function analyzeProjectAsync(projectId: number) {
     console.error(`Analysis failed for project ${projectId}:`, error);
     await storage.updateProject(projectId, { 
       status: 'failed',
-      analysisResult: { error: error.message }
+      analysisResult: { error: (error as Error).message }
     });
   }
 }
@@ -338,10 +338,11 @@ async function startDeploymentAsync(deploymentId: number) {
 
   } catch (error) {
     console.error(`Deployment failed for deployment ${deploymentId}:`, error);
+    const currentDeployment = await storage.getDeployment(deploymentId);
     await storage.updateDeployment(deploymentId, { 
       status: 'failed',
-      errorMessage: error.message,
-      logs: (deployment?.logs || '') + `Error: ${error.message}\n`
+      errorMessage: (error as Error).message,
+      logs: (currentDeployment?.logs || '') + `Error: ${(error as Error).message}\n`
     });
   }
 }
