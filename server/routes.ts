@@ -360,64 +360,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).send('Project not found');
       }
 
-      // Serve the deployed application preview
+      // Get actual project files and serve them
+      const files = await fileStorage.extractZipContents(project.fileName);
+      
+      if (files.length === 0) {
+        return res.status(404).send('No project files found');
+      }
+
+      // Find the main file (index.html, app.js, main.py, etc.)
+      const indexFile = files.find(f => 
+        f.name.toLowerCase() === 'index.html' || 
+        f.name.toLowerCase() === 'app.html' ||
+        f.name.toLowerCase() === 'home.html'
+      );
+
+      if (indexFile) {
+        // If HTML file exists, serve it directly
+        res.setHeader('Content-Type', 'text/html');
+        return res.send(indexFile.content);
+      }
+
+      // Otherwise, create a file browser interface
       const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${project.name} - Deployed Application</title>
+    <title>${project.name} - Project Files</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Segoe UI', system-ui, sans-serif; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; 
+            background: #0d1117; color: #c9d1d9; 
+            line-height: 1.6; padding: 20px; min-height: 100vh;
         }
-        .container { 
-            text-align: center; max-width: 900px; background: rgba(255,255,255,0.1);
-            padding: 60px; border-radius: 20px; backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 25px 45px rgba(0,0,0,0.1);
+        .header { 
+            background: #161b22; padding: 24px; border-radius: 8px; margin-bottom: 24px;
+            border: 1px solid #30363d; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
-        h1 { 
-            font-size: 3.5rem; margin: 0 0 20px 0; 
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        .project-title { 
+            font-size: 2rem; color: #58a6ff; margin-bottom: 8px; 
+            display: flex; align-items: center; gap: 12px;
         }
-        .status { 
-            background: linear-gradient(45deg, #28a745, #20c997); color: white; 
-            padding: 15px 30px; border-radius: 50px; display: inline-block; 
-            margin: 20px 0; font-weight: bold; box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
-            animation: pulse 2s infinite;
+        .project-info { color: #7c3aed; font-size: 14px; margin-bottom: 16px; }
+        .nav-btn { 
+            background: #238636; color: white; padding: 8px 16px; 
+            border: none; border-radius: 6px; cursor: pointer; margin-right: 8px;
+            transition: background 0.2s ease;
         }
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
-        .info { 
-            background: rgba(255,255,255,0.1); padding: 30px; border-radius: 15px; 
-            margin: 30px 0; text-align: left;
+        .nav-btn:hover { background: #2ea043; }
+        .file-list { 
+            background: #161b22; padding: 24px; border-radius: 8px; margin-bottom: 24px;
+            border: 1px solid #30363d;
         }
-        .features { 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px; margin: 30px 0;
+        .file-list h3 { color: #f0f6fc; margin-bottom: 16px; font-size: 18px; }
+        .file-item { 
+            padding: 12px 16px; border-bottom: 1px solid #21262d; cursor: pointer;
+            transition: background 0.2s ease; border-radius: 6px; margin-bottom: 4px;
+            display: flex; justify-content: space-between; align-items: center;
         }
-        .feature { 
-            background: rgba(255,255,255,0.1); padding: 25px; border-radius: 15px;
-            border: 1px solid rgba(255,255,255,0.2); transition: transform 0.3s ease;
+        .file-item:hover { background: #21262d; }
+        .file-item:last-child { border-bottom: none; }
+        .file-name { color: #58a6ff; font-weight: 500; }
+        .file-size { color: #7d8590; font-size: 12px; }
+        .file-content { 
+            background: #0d1117; padding: 24px; border-radius: 8px; margin-top: 24px;
+            white-space: pre-wrap; font-size: 14px; max-height: 600px; overflow-y: auto;
+            border: 1px solid #30363d; font-family: 'Monaco', 'Menlo', monospace;
         }
-        .feature:hover { transform: translateY(-5px); background: rgba(255,255,255,0.15); }
-        .feature h4 { font-size: 1.2rem; margin-bottom: 10px; color: #4ecdc4; }
-        .btn { 
-            background: linear-gradient(45deg, #667eea, #764ba2); color: white;
-            padding: 15px 30px; border: none; border-radius: 50px; cursor: pointer;
-            margin: 10px; text-decoration: none; display: inline-block;
-            transition: all 0.3s ease; font-weight: 600;
+        .file-viewer { 
+            background: #161b22; padding: 24px; border-radius: 8px;
+            border: 1px solid #30363d;
         }
-        .btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); }
-        .metrics { display: flex; justify-content: space-around; margin: 30px 0; flex-wrap: wrap; }
-        .metric { text-align: center; margin: 10px; }
-        .metric-value { font-size: 2rem; font-weight: bold; color: #4ecdc4; }
-        .metric-label { font-size: 0.9rem; opacity: 0.8; margin-top: 5px; }
+        .file-viewer h3 { color: #f0f6fc; margin-bottom: 16px; }
+        .hidden { display: none; }
+        .file-extension { 
+            background: #1f2937; color: #9ca3af; padding: 2px 6px; 
+            border-radius: 4px; font-size: 11px; margin-left: 8px;
+        }
         .deploy-info { 
             background: linear-gradient(45deg, rgba(76, 175, 80, 0.1), rgba(33, 150, 243, 0.1));
             padding: 20px; border-radius: 10px; margin: 20px 0;
@@ -426,55 +447,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚀 ${project.name}</h1>
-        <div class="status">✅ Successfully Deployed & Live</div>
-        
-        <div class="deploy-info">
-            <strong>🎉 Your application is now live and accessible!</strong><br>
-            Deployed via Smart Deployment Dashboard
-        </div>
-
-        <div class="metrics">
-            <div class="metric"><div class="metric-value">99.9%</div><div class="metric-label">Uptime</div></div>
-            <div class="metric"><div class="metric-value">< 100ms</div><div class="metric-label">Response Time</div></div>
-            <div class="metric"><div class="metric-value">A+</div><div class="metric-label">Security Grade</div></div>
-            <div class="metric"><div class="metric-value">CDN</div><div class="metric-label">Global Delivery</div></div>
-        </div>
-        
-        <div class="info">
-            <h3>📋 Deployment Information</h3>
-            <p><strong>Framework:</strong> ${project.framework || 'React'}</p>
-            <p><strong>Deployed:</strong> ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-            <p><strong>Status:</strong> Live and Serving Requests</p>
-            <p><strong>SSL:</strong> ✅ Enabled (HTTPS)</p>
-        </div>
-
-        <div class="features">
-            <div class="feature"><h4>⚡ Optimized Performance</h4><p>Code splitting, lazy loading, and minified assets</p></div>
-            <div class="feature"><h4>🔒 Enterprise Security</h4><p>HTTPS encryption, CORS protection, and security headers</p></div>
-            <div class="feature"><h4>📱 Mobile Responsive</h4><p>Fully responsive design that works on all devices</p></div>
-            <div class="feature"><h4>🌐 Global CDN</h4><p>Content delivered from edge locations worldwide</p></div>
-            <div class="feature"><h4>📊 Real-time Monitoring</h4><p>Health checks, performance metrics, and uptime monitoring</p></div>
-            <div class="feature"><h4>🚀 Auto-scaling</h4><p>Automatically scales to handle traffic spikes</p></div>
-        </div>
-
-        <div class="info">
-            <h3>🔗 API Endpoints</h3>
-            <p><strong>GET /api/health</strong> - Application health check</p>
-            <p><strong>GET /api/status</strong> - Deployment status information</p>
-            <div style="margin-top: 20px;">
-                <a href="/api/deployment/${deploymentId}/health" class="btn">Test Health Check</a>
-            </div>
-        </div>
-
-        <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
-            <p style="opacity: 0.8; font-size: 0.9rem;">
-                🎯 Powered by Smart Deployment Dashboard<br>
-                Deployment ID: ${deploymentId} | Framework: ${project.framework || 'React'}
-            </p>
-        </div>
+    <div class="header">
+        <div class="project-title">📁 ${project.name}</div>
+        <div class="project-info">Framework: ${project.framework || 'Unknown'} • Files: ${files.length} • Status: Deployed</div>
+        <button class="nav-btn" onclick="window.close()">← Back to Dashboard</button>
     </div>
+
+    <div class="file-list">
+        <h3>Project Files:</h3>
+        ${files.map((file, index) => `
+        <div class="file-item" onclick="showFile(${index})">
+            <div>
+                <div class="file-name">${file.name}</div>
+                <span class="file-extension">${file.name.split('.').pop()?.toUpperCase() || 'FILE'}</span>
+            </div>
+            <div class="file-size">${(file.size / 1024).toFixed(1)} KB</div>
+        </div>
+        `).join('')}
+    </div>
+
+    <div id="file-viewer" class="file-viewer hidden">
+        <h3>File Content:</h3>
+        <div id="file-content" class="file-content"></div>
+    </div>
+
+    <script>
+        const files = ${JSON.stringify(files)};
+        
+        function showFile(index) {
+            const file = files[index];
+            const viewer = document.getElementById('file-viewer');
+            const content = document.getElementById('file-content');
+            
+            content.textContent = file.content;
+            viewer.classList.remove('hidden');
+            
+            // Scroll to viewer
+            viewer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
 </body>
 </html>`;
 
