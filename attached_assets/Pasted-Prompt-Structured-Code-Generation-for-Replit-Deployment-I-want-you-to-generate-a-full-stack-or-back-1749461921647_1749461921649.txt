@@ -1,0 +1,103 @@
+Prompt: Structured Code Generation for Replit Deployment
+I want you to generate a full-stack or backend application that is fully compatible with Replit, keeping in mind the following structured requirements. Please follow every instruction carefully.
+
+1. Project Description
+text
+Copy
+Edit
+Build a [brief description of the app you want – e.g., "Node.js-based URL shortener with MongoDB", "FastAPI blog API", "Express.js todo app with SQLite", etc.]
+2. Replit Compatibility Requirements
+Include replit.nix if not auto-detectable.
+
+Include a working .replit file that specifies how to run the app.
+
+Ensure main or index file is clearly named and referenced in .replit.
+
+Set up a virtual environment or Node environment appropriately for Replit.
+
+Use requirements.txt (Python) or package.json (Node.js) correctly.
+
+Expose ports on Replit correctly (usually host='0.0.0.0', port=8080).
+
+3. Folder & File Structure
+Structure the code as per Replit's default format:
+
+rust
+Copy
+Edit
+/
+├── main.py / index.js
+├── requirements.txt / package.json
+├── .replit
+├── replit.nix (if needed)
+├── templates/ (for HTML if needed)
+├── static/ (for CSS/JS/images)
+└── README.md
+4. Functionality Requirements
+text
+Copy
+Edit
+[List features clearly — e.g., "CRUD operations on posts", "Login/signup with JWT", "Store data in SQLite", etc.]
+5. Technology Stack
+text
+Copy
+Edit
+Specify the language/framework/db — e.g.:
+- Language: Python / Node.js / Java
+- Framework: FastAPI / Flask / Express / Spring Boot
+- Database: SQLite / PostgreSQL / MongoDB
+- Frontend (if any): HTML/CSS/JS / React
+6. Deployment Instructions
+Ensure the generated project:
+
+Can be run directly in Replit by clicking "Run"
+
+Shows output/log in the console
+
+Displays frontend or API at the webview URL Replit gives
+
+Includes README.md with:
+
+Setup instructions
+
+Running steps
+
+Known issues (if any)
+
+7. NLP-Based Explanation Support
+After generating the code:
+
+Provide a brief explanation of each file and its role
+
+Mention common Replit-specific pitfalls (e.g., port not exposed, packages not installed)
+
+Suggest one-click commands if manual setup is needed (e.g., pip install -r requirements.txt)
+
+8. Security & Error Handling
+Ensure that code handles common runtime errors gracefully
+
+Validate user inputs (especially in APIs)
+
+Avoid hardcoding credentials
+
+If authentication is used, mention how it's handled (JWT, session, etc.)
+
+9. Optional: Replit DB Integration
+If no external DB is specified and user wants lightweight DB:
+
+Integrate Replit DB (replit package in Python or npm @replit/database)
+
+Provide setup instructions
+
+🔁 Example Use of This Prompt
+Build a Python FastAPI-based blog API that is compatible with Replit.
+
+Use SQLite for storage.
+
+Include full CRUD for blog posts and user login using JWT.
+
+Make sure it runs on Replit with proper .replit and replit.nix.
+
+Provide a clear explanation of each file and deployment steps.
+
+Use Replit DB if SQLite can't persist on Replit.
