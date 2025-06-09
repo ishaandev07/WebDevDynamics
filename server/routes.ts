@@ -14,14 +14,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: {
       fileSize: 100 * 1024 * 1024, // 100MB limit
     },
-    fileFilter: (req, file, cb) => {
-      if (file.mimetype === 'application/zip' || file.originalname.endsWith('.zip')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only .zip files are allowed'));
-      }
-    },
-  });
+  }).fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'files', maxCount: 1000 }
+  ]);
 
   // Auth middleware
   await setupAuth(app);
@@ -39,37 +35,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project routes
-  app.post('/api/projects', isAuthenticated, upload.single('file'), async (req: any, res) => {
+  app.post('/api/projects', isAuthenticated, upload, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, description } = req.body;
+      const { name, description, uploadType, paths } = req.body;
       
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-
       if (!name) {
         return res.status(400).json({ message: "Project name is required" });
       }
 
-      // Save the uploaded file
-      const fileName = await fileStorage.saveUploadedFile(req.file.originalname, req.file.buffer);
+      let fileName, fileSize, files = [];
+
+      if (uploadType === 'zip' && req.files?.file?.[0]) {
+        // Handle ZIP file upload
+        const zipFile = req.files.file[0];
+        fileName = await fileStorage.saveUploadedFile(zipFile.originalname, zipFile.buffer);
+        fileSize = zipFile.size;
+      } else if (uploadType === 'folder' && req.files?.files) {
+        // Handle folder upload - create files array with paths
+        const uploadedFiles = req.files.files;
+        const pathsArray = Array.isArray(paths) ? paths : [paths];
+        
+        for (let i = 0; i < uploadedFiles.length; i++) {
+          const file = uploadedFiles[i];
+          const relativePath = pathsArray[i] || file.originalname;
+          files.push({
+            name: file.originalname,
+            path: relativePath,
+            content: file.buffer.toString('utf8'),
+            size: file.size
+          });
+        }
+        
+        fileName = `folder-${Date.now()}`;
+        fileSize = files.reduce((acc, file) => acc + file.size, 0);
+      } else {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
 
       // Create project record
       const projectData = insertProjectSchema.parse({
         userId,
         name,
         description: description || '',
-        fileName: req.file.originalname,
+        fileName: uploadType === 'zip' ? req.files.file[0].originalname : `${name}-folder`,
         filePath: fileName,
-        fileSize: req.file.size,
+        fileSize: fileSize,
         status: 'uploaded'
       });
 
       const project = await storage.createProject(projectData);
 
       // Start analysis in background
-      analyzeProjectAsync(project.id);
+      analyzeProjectAsync(project.id, files);
 
       res.json(project);
     } catch (error) {

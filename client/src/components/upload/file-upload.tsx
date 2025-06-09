@@ -191,65 +191,108 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* File Upload Area */}
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
-          dragActive 
-            ? "border-blue-600 bg-blue-50" 
-            : selectedFile
-            ? "border-green-300 bg-green-50"
-            : "border-slate-300 hover:border-blue-600 hover:bg-blue-50"
-        )}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => document.getElementById('file-input')?.click()}
-      >
-        <input
-          id="file-input"
-          type="file"
-          accept=".zip"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+      <div className="space-y-4">
+        {/* Upload Type Selection */}
+        <div className="flex gap-4 justify-center">
+          <Button
+            type="button"
+            variant={uploadType === 'folder' ? 'default' : 'outline'}
+            onClick={() => folderInputRef.current?.click()}
+            className="flex items-center space-x-2"
+          >
+            <Folder className="h-4 w-4" />
+            <span>Upload Folder</span>
+          </Button>
+          <Button
+            type="button"
+            variant={uploadType === 'zip' ? 'default' : 'outline'}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center space-x-2"
+          >
+            <Archive className="h-4 w-4" />
+            <span>Upload ZIP</span>
+          </Button>
+        </div>
 
-        {selectedFile ? (
-          <div className="space-y-2">
-            <FileText className="mx-auto h-12 w-12 text-green-600" />
-            <div className="flex items-center justify-center space-x-2">
-              <span className="text-lg font-medium text-green-900">{selectedFile.name}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedFile(null);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+        {/* Drag & Drop Area */}
+        <div
+          className={cn(
+            "border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer",
+            dragActive 
+              ? "border-blue-600 bg-blue-50" 
+              : selectedFiles && selectedFiles.length > 0
+              ? "border-green-300 bg-green-50"
+              : "border-slate-300 hover:border-blue-600 hover:bg-blue-50"
+          )}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          {/* Hidden file inputs */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".zip"
+            onChange={handleZipFileSelect}
+            className="hidden"
+          />
+          <input
+            ref={folderInputRef}
+            type="file"
+            {...({ webkitdirectory: '', directory: '' } as any)}
+            onChange={handleFolderSelect}
+            className="hidden"
+          />
+
+          {selectedFiles && selectedFiles.length > 0 ? (
+            <div className="space-y-3">
+              {uploadType === 'zip' ? (
+                <Archive className="mx-auto h-12 w-12 text-green-600" />
+              ) : (
+                <Folder className="mx-auto h-12 w-12 text-green-600" />
+              )}
+              <div className="flex items-center justify-center space-x-2">
+                <span className="text-lg font-medium text-green-900">
+                  {uploadType === 'zip' 
+                    ? selectedFiles[0].name 
+                    : `${selectedFiles.length} files selected`}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    resetForm();
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-green-800">
+                {uploadType === 'zip' 
+                  ? `${(selectedFiles[0].size / 1024 / 1024).toFixed(2)} MB`
+                  : `Total: ${(Array.from(selectedFiles).reduce((acc, file) => acc + file.size, 0) / 1024 / 1024).toFixed(2)} MB`}
+              </p>
             </div>
-            <p className="text-sm text-green-800">
-              {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <CloudUpload className="mx-auto h-12 w-12 text-slate-600" />
-            <div>
-              <h3 className="text-lg font-medium text-slate-900 mb-2">
-                Drop your project files here
-              </h3>
-              <p className="text-slate-600 mb-4">or click to browse and upload .zip files</p>
-              <Button type="button" variant="outline">
-                Choose Files
-              </Button>
-              <p className="text-sm text-slate-500 mt-2">Supports .zip files up to 100MB</p>
+          ) : (
+            <div className="space-y-4">
+              <CloudUpload className="mx-auto h-12 w-12 text-slate-600" />
+              <div>
+                <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  Drop your project here
+                </h3>
+                <p className="text-slate-600 mb-4">
+                  Drag & drop a folder or ZIP file, or click buttons above to browse
+                </p>
+                <p className="text-sm text-slate-500">
+                  Supports project folders and ZIP files up to 100MB
+                </p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Project Details */}
@@ -281,7 +324,7 @@ export default function FileUpload({ onUploadSuccess }: FileUploadProps) {
       <Button
         type="submit"
         className="w-full"
-        disabled={!selectedFile || !projectName.trim() || uploadMutation.isPending}
+        disabled={!selectedFiles || selectedFiles.length === 0 || !projectName.trim() || uploadMutation.isPending}
       >
         {uploadMutation.isPending ? (
           <div className="flex items-center space-x-2">
