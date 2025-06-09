@@ -8,6 +8,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Upload from "@/pages/upload";
+import ProjectDetails from "@/pages/project-details";
 import Deployments from "@/pages/deployments";
 import Settings from "@/pages/settings";
 import Navigation from "@/components/layout/navigation";
@@ -35,6 +36,7 @@ function Router() {
           <Switch>
             <Route path="/" component={Dashboard} />
             <Route path="/upload" component={Upload} />
+            <Route path="/projects/:id" component={ProjectDetails} />
             <Route path="/deployments" component={Deployments} />
             <Route path="/settings" component={Settings} />
             <Route component={NotFound} />
