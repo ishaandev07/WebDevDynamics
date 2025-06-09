@@ -35,45 +35,62 @@ export class FileStorageService {
 
   async extractZipContents(fileName: string): Promise<FileInfo[]> {
     const filePath = path.join(this.uploadsDir, fileName);
-    const extractDir = path.join(this.uploadsDir, fileName.replace('.zip', '_extracted'));
-
+    
     try {
-      // Create extraction directory
-      await fs.promises.mkdir(extractDir, { recursive: true });
-
-      // Check if the file exists and is readable
-      await fs.promises.access(filePath, fs.constants.R_OK);
+      // Check if it's a directory (folder upload) or file (ZIP upload)
+      const stats = await fs.promises.stat(filePath);
       
-      console.log(`Extracting ${filePath} to ${extractDir}`);
+      if (stats.isDirectory()) {
+        console.log(`Processing folder upload: ${fileName}`);
+        // Read files directly from the folder
+        const files = await this.readDirectoryFiles(filePath);
+        console.log(`Successfully read ${files.length} files from folder ${fileName}`);
+        return files;
+      } else if (stats.isFile()) {
+        console.log(`Processing ZIP file: ${fileName}`);
+        // Handle ZIP file extraction
+        const extractDir = path.join(this.uploadsDir, fileName.replace('.zip', '_extracted'));
+        
+        try {
+          // Create extraction directory
+          await fs.promises.mkdir(extractDir, { recursive: true });
+          
+          console.log(`Extracting ${filePath} to ${extractDir}`);
 
-      // Extract zip file using unzip command with better error handling
-      try {
-        await execAsync(`unzip -q "${filePath}" -d "${extractDir}"`);
-      } catch (unzipError: any) {
-        console.error('Unzip command failed:', unzipError);
-        // Try alternative extraction method
-        console.log('Attempting alternative extraction...');
-        await execAsync(`cd "${extractDir}" && unzip -o "${filePath}"`);
+          // Extract zip file using unzip command
+          try {
+            await execAsync(`unzip -q "${filePath}" -d "${extractDir}"`);
+          } catch (unzipError: any) {
+            console.error('Unzip command failed:', unzipError);
+            // Try alternative extraction method
+            console.log('Attempting alternative extraction...');
+            await execAsync(`cd "${extractDir}" && unzip -o "${filePath}"`);
+          }
+
+          // Read extracted files
+          const files = await this.readDirectoryFiles(extractDir);
+          
+          console.log(`Successfully extracted ${files.length} files from ZIP ${fileName}`);
+          
+          // Clean up extraction directory after reading
+          await this.removeDirectory(extractDir);
+
+          return files;
+        } catch (error: any) {
+          // Clean up on error
+          try {
+            await this.removeDirectory(extractDir);
+          } catch (cleanupError) {
+            console.error('Error cleaning up extraction directory:', cleanupError);
+          }
+          throw error;
+        }
+      } else {
+        throw new Error(`Unsupported file type: ${fileName} is neither a file nor directory`);
       }
-
-      // Read extracted files
-      const files = await this.readDirectoryFiles(extractDir);
-      
-      console.log(`Successfully extracted ${files.length} files from ${fileName}`);
-      
-      // Clean up extraction directory after reading
-      await this.removeDirectory(extractDir);
-
-      return files;
     } catch (error: any) {
       console.error('Error in extractZipContents:', error);
-      // Clean up on error
-      try {
-        await this.removeDirectory(extractDir);
-      } catch (cleanupError) {
-        console.error('Error cleaning up extraction directory:', cleanupError);
-      }
-      throw new Error(`Failed to extract zip file: ${error.message}`);
+      throw new Error(`Failed to process file: ${error.message}`);
     }
   }
 
