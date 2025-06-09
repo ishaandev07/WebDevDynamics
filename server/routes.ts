@@ -408,20 +408,7 @@ async function startDeploymentAsync(deploymentId: number) {
       throw new Error('Project not found');
     }
 
-    // Simulate deployment process (in real implementation, this would deploy to actual servers)
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate build time
-
-    await storage.updateDeployment(deploymentId, { 
-      status: 'deploying',
-      logs: deployment.logs + 'Build completed. Deploying to server...\n'
-    });
-
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate deploy time
-
-    // For demo purposes, randomly succeed or fail
-    const success = Math.random() > 0.3; // 70% success rate
-
-    // Use deployment engine for realistic deployment simulation
+    // Use deployment engine for complete deployment process
     await deploymentEngine.createDeploymentFiles(deploymentId);
     await deploymentEngine.simulateDeployment(deploymentId);
 
