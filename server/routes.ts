@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/deployed/:id/assets/*', async (req, res) => {
     try {
       const deploymentId = parseInt(req.params.id);
-      const assetPath = req.params[0];
+      const assetPath = req.params['0'] || '';
       
       if (isNaN(deploymentId)) {
         return res.status(400).send('Invalid deployment ID');
