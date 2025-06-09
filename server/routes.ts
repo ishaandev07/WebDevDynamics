@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { promises as fs } from "fs";
+import path from "path";
 import multer from "multer";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
@@ -354,6 +356,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).send('Invalid deployment ID');
       }
       
+      // Check if optimized deployment exists
+      const optimizedPath = path.join(process.cwd(), 'optimized-deployments', `deployment-${deploymentId}`, 'index.html');
+      
+      try {
+        await fs.access(optimizedPath);
+        // Serve the optimized HTML file
+        const htmlContent = await fs.readFile(optimizedPath, 'utf8');
+        res.setHeader('Content-Type', 'text/html');
+        res.send(htmlContent);
+        return;
+      } catch (err) {
+        // Fall back to database lookup and processing
+      }
+      
       const deployment = await storage.getDeployment(deploymentId);
       
       if (!deployment) {
@@ -385,6 +401,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (isNaN(deploymentId)) {
         return res.status(400).send('Invalid deployment ID');
+      }
+      
+      // Check for optimized asset files first
+      const optimizedAssetPath = path.join(process.cwd(), 'optimized-deployments', `deployment-${deploymentId}`, filename);
+      
+      try {
+        await fs.access(optimizedAssetPath);
+        const content = await fs.readFile(optimizedAssetPath, 'utf8');
+        
+        // Set appropriate content type
+        if (filename.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css');
+        } else if (filename.endsWith('.js')) {
+          res.setHeader('Content-Type', 'application/javascript');
+        } else if (filename.endsWith('.html')) {
+          res.setHeader('Content-Type', 'text/html');
+        }
+        
+        // Set no-cache headers to bypass Vite
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        res.send(content);
+        return;
+      } catch (err) {
+        // Fall back to deployment engine
       }
       
       // Check if it's an asset file (has extension)
