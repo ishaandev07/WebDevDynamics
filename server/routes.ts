@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 }
 
 // Background analysis function
-async function analyzeProjectAsync(projectId: number) {
+async function analyzeProjectAsync(projectId: number, folderFiles?: any[]) {
   try {
     const project = await storage.getProject(projectId);
     if (!project) return;
@@ -289,8 +289,20 @@ async function analyzeProjectAsync(projectId: number) {
     // Update status to analyzing
     await storage.updateProject(projectId, { status: 'analyzing' });
 
-    // Extract and analyze files
-    const files = await fileStorage.extractZipContents(project.filePath);
+    let files;
+    
+    if (folderFiles && folderFiles.length > 0) {
+      // Use provided folder files
+      files = folderFiles.map(f => ({
+        name: f.name,
+        content: f.content,
+        size: f.size
+      }));
+    } else {
+      // Extract files from the uploaded zip
+      files = await fileStorage.extractZipContents(project.filePath);
+    }
+
     const analysis = await aiAssistant.analyzeProject(files);
 
     // Update project with analysis results
