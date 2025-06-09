@@ -197,7 +197,7 @@ ${content}
 Return only the enhanced Node.js code:`;
 
       try {
-        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, 'system');
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, {});
         return optimizedContent;
       } catch (error) {
         console.error('AI Node.js optimization failed:', error);
@@ -211,19 +211,28 @@ Return only the enhanced Node.js code:`;
     let content = file.content;
     
     if (file.name.endsWith('.py')) {
-      // Add production imports if not present
-      if (content.includes('Flask') && !content.includes('logging')) {
-        content = `import logging\nimport os\n${content}`;
-      }
-      
-      // Add error handling
-      if (content.includes('app = Flask') && !content.includes('errorhandler')) {
-        content += `\n\n@app.errorhandler(500)\ndef internal_error(error):\n    return {'error': 'Internal server error'}, 500\n\n@app.errorhandler(404)\ndef not_found(error):\n    return {'error': 'Not found'}, 404`;
-      }
-      
-      // Add health check
-      if (content.includes('app = Flask') && !content.includes('/health')) {
-        content += `\n\n@app.route('/health')\ndef health_check():\n    return {'status': 'OK', 'timestamp': datetime.now().isoformat()}`;
+      const prompt = `Transform this Python file into production-ready code. Enhance it with:
+- Comprehensive error handling and logging configuration
+- Environment variable management and validation
+- Performance optimizations and caching strategies
+- Security enhancements and input validation
+- Database connection pooling and optimization
+- Health check endpoints and monitoring
+- CORS configuration and security headers
+- Rate limiting and request throttling
+- Graceful shutdown and signal handling
+- Production-ready middleware and configurations
+
+Original Python code:
+${content}
+
+Return only the enhanced Python code:`;
+
+      try {
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, {});
+        return optimizedContent;
+      } catch (error) {
+        console.error('AI Python optimization failed:', error);
       }
     }
     
