@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Production-ready StayFitNFine fitness application - Transform your fitness journey with AI-powered workouts">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="StayFitNFine Team">
+    <meta name="keywords" content="fitness, workout, health, exercise, nutrition">
+    <meta property="og:title" content="StayFitNFine - Transform Your Fitness Journey">
+    <meta property="og:description" content="Personalized workouts, nutrition tracking, and community support">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="preload" as="style" onload="this.onload=null;this.rel='stylesheet'" href="styles.css">
+    <title>StayFitNFine - Transform Your Fitness Journey</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💪</text></svg>">
+</head>
+<body>
+    <noscript>This application requires JavaScript to run. Please enable JavaScript in your browser.</noscript>
+    
+    <!-- Loading overlay -->
+    <div id="loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(3px);">
+        <div style="text-align:center;">
+            <div style="width:50px;height:50px;border:3px solid #f3f3f3;border-top:3px solid #667eea;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;"></div>
+            <p style="margin:0;font-weight:600;color:#333;">Loading StayFitNFine...</p>
+        </div>
+    </div>
+
+    <header role="banner">
+        <nav aria-label="Main navigation">
+            <div class="logo" aria-label="StayFitNFine homepage">
+                <span role="img" aria-label="Fitness">💪</span> StayFitNFine
+            </div>
+            <ul role="menubar">
+                <li role="none"><a href="#home" role="menuitem" aria-label="Go to home section">Home</a></li>
+                <li role="none"><a href="#features" role="menuitem" aria-label="View features">Features</a></li>
+                <li role="none"><a href="#workouts" role="menuitem" aria-label="Browse workouts">Workouts</a></li>
+                <li role="none"><a href="#nutrition" role="menuitem" aria-label="Nutrition tracking">Nutrition</a></li>
+                <li role="none"><a href="#contact" role="menuitem" aria-label="Contact us">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main role="main">
+        <section id="home" class="hero" aria-labelledby="hero-title">
+            <div class="hero-content">
+                <h1 id="hero-title">Transform Your Fitness Journey</h1>
+                <p>Personalized workouts, nutrition tracking, and community support to help you achieve your fitness goals.</p>
+                <button class="cta-button" onclick="startWorkout()" aria-label="Start your fitness journey now" type="button">
+                    Start Your Journey
+                </button>
+            </div>
+        </section>
+
+        <section id="features" class="features" aria-labelledby="features-title">
+            <h2 id="features-title">Why Choose StayFitNFine?</h2>
+            <div class="feature-grid" role="list">
+                <div class="feature-card" role="listitem">
+                    <h3>Smart Workouts</h3>
+                    <p>AI-powered workout recommendations based on your fitness level and goals.</p>
+                </div>
+                <div class="feature-card" role="listitem">
+                    <h3>Nutrition Tracking</h3>
+                    <p>Track your meals, calories, and nutrition with our comprehensive database.</p>
+                </div>
+                <div class="feature-card" role="listitem">
+                    <h3>Progress Analytics</h3>
+                    <p>Detailed analytics and insights to track your fitness progress over time.</p>
+                </div>
+                <div class="feature-card" role="listitem">
+                    <h3>Community Support</h3>
+                    <p>Connect with like-minded individuals and share your fitness journey.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="workouts" class="workouts" aria-labelledby="workouts-title">
+            <h2 id="workouts-title">Featured Workouts</h2>
+            <div id="workout-container" class="workout-grid" role="list" aria-live="polite">
+                <!-- Workouts will be dynamically loaded here -->
+            </div>
+        </section>
+
+        <section id="stats" class="stats" aria-labelledby="stats-title">
+            <h2 id="stats-title">Your Progress</h2>
+            <div class="stats-grid" role="list">
+                <div class="stat-item" role="listitem">
+                    <span class="stat-number" id="workouts-completed" aria-label="Workouts completed">0</span>
+                    <span class="stat-label">Workouts Completed</span>
+                </div>
+                <div class="stat-item" role="listitem">
+                    <span class="stat-number" id="calories-burned" aria-label="Total calories burned">0</span>
+                    <span class="stat-label">Calories Burned</span>
+                </div>
+                <div class="stat-item" role="listitem">
+                    <span class="stat-number" id="current-streak" aria-label="Current workout streak">0</span>
+                    <span class="stat-label">Day Streak</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer role="contentinfo">
+        <p>&copy; 2024 StayFitNFine. All rights reserved. | <a href="#privacy" aria-label="Privacy policy">Privacy Policy</a> | <a href="#terms" aria-label="Terms of service">Terms of Service</a></p>
+    </footer>
+
+    <script defer src="app.js"></script>
+
+    <style>
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    </style>
+
+    <!-- Hide loading overlay once page is fully loaded -->
+    <script>
+    window.addEventListener('load', function() {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => loadingOverlay.remove(), 300);
+        }
+    });
+    </script>
+</body>
+</html>
