@@ -18,8 +18,12 @@ import {
   Clock,
   ExternalLink,
   Download,
-  Rocket
+  Rocket,
+  FileText,
+  Terminal
 } from "lucide-react";
+import DeploymentLogs from "@/components/deployments/deployment-logs";
+import DeploymentConfig from "@/components/deployments/deployment-config";
 
 interface Project {
   id: number;
@@ -47,6 +51,14 @@ export default function ProjectDetails() {
     queryKey: [`/api/projects/${id}`],
     enabled: !!id,
   });
+
+  const { data: deployments = [] } = useQuery({
+    queryKey: ['/api/deployments'],
+    select: (data: any[]) => data.filter(d => d.projectId === parseInt(id!)),
+    enabled: !!id,
+  });
+
+  const latestDeployment = deployments[0];
 
   const createDeploymentMutation = useMutation({
     mutationFn: async () => {
@@ -401,6 +413,126 @@ export default function ProjectDetails() {
         </Card>
       )}
 
+      {/* Deployment Configuration */}
+      {analysis && !analysis.error && (
+        <DeploymentConfig projectId={parseInt(id!)} project={project} />
+      )}
+
+      {/* Current Deployment Status */}
+      {latestDeployment && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Rocket className="h-5 w-5" />
+              <span>Current Deployment</span>
+            </CardTitle>
+            <CardDescription>
+              Latest deployment status and information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <label className="text-sm font-medium text-slate-600">Status</label>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Badge className={`${getStatusColor(latestDeployment.status)}`}>
+                    {getStatusIcon(latestDeployment.status)}
+                    <span className="ml-1 capitalize">{latestDeployment.status}</span>
+                  </Badge>
+                </div>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <label className="text-sm font-medium text-slate-600">Target Server</label>
+                <p className="text-lg font-semibold text-slate-900 capitalize">
+                  {latestDeployment.targetServer}
+                </p>
+              </div>
+              <div className="bg-slate-50 p-4 rounded-lg">
+                <label className="text-sm font-medium text-slate-600">Created</label>
+                <p className="text-lg font-semibold text-slate-900">
+                  {new Date(latestDeployment.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            
+            {latestDeployment.deploymentUrl && (
+              <div className="flex items-center space-x-2 p-4 bg-green-50 rounded-lg">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-green-800 font-medium">Deployment URL:</span>
+                <a 
+                  href={latestDeployment.deploymentUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                >
+                  {latestDeployment.deploymentUrl}
+                  <ExternalLink className="ml-1 h-4 w-4" />
+                </a>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Deployment Logs */}
+      {latestDeployment && (
+        <DeploymentLogs 
+          deploymentId={latestDeployment.id} 
+          deployment={latestDeployment}
+        />
+      )}
+
+      {/* All Deployments History */}
+      {deployments.length > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Terminal className="h-5 w-5" />
+              <span>Deployment History</span>
+            </CardTitle>
+            <CardDescription>
+              Previous deployments for this project
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {deployments.slice(1).map((deployment: any) => (
+                <div
+                  key={deployment.id}
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <Badge className={`${getStatusColor(deployment.status)}`}>
+                        {getStatusIcon(deployment.status)}
+                        <span className="ml-1 capitalize">{deployment.status}</span>
+                      </Badge>
+                      <span className="text-sm text-slate-600">
+                        Deployment #{deployment.id}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        {new Date(deployment.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {deployment.deploymentUrl && (
+                      <a 
+                        href={deployment.deploymentUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                      >
+                        View
+                        <ExternalLink className="ml-1 h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Actions */}
       <Card>
         <CardHeader>
@@ -430,7 +562,7 @@ export default function ProjectDetails() {
             
             <Button variant="outline" onClick={() => setLocation('/deployments')}>
               <ExternalLink className="mr-2 h-4 w-4" />
-              View Deployments
+              View All Deployments
             </Button>
             
             <Button variant="outline" onClick={() => setLocation(`/projects/${id}/download`)}>

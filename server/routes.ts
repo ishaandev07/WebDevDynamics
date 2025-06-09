@@ -277,6 +277,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Deployment guidance route
+  app.get('/api/projects/:id/deployment-guide', isAuthenticated, async (req: any, res) => {
+    try {
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Project not found" });
+      }
+
+      if (project.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const guide = await deploymentEngine.generateDeploymentGuidance(projectId);
+      res.json({ guide });
+    } catch (error) {
+      console.error("Error generating deployment guide:", error);
+      res.status(500).json({ message: "Failed to generate deployment guide" });
+    }
+  });
+
+  // Deployment retry route
+  app.post('/api/deployments/:id/retry', isAuthenticated, async (req: any, res) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const deployment = await storage.getDeployment(deploymentId);
+      
+      if (!deployment) {
+        return res.status(404).json({ message: "Deployment not found" });
+      }
+
+      if (deployment.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await deploymentEngine.retryDeployment(deploymentId);
+      startDeploymentAsync(deploymentId);
+      
+      res.json({ message: "Deployment retry started" });
+    } catch (error) {
+      console.error("Error retrying deployment:", error);
+      res.status(500).json({ message: "Failed to retry deployment" });
+    }
+  });
+
+  // Deployment logs route
+  app.get('/api/deployments/:id/logs', isAuthenticated, async (req: any, res) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const deployment = await storage.getDeployment(deploymentId);
+      
+      if (!deployment) {
+        return res.status(404).json({ message: "Deployment not found" });
+      }
+
+      if (deployment.userId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const logs = await deploymentEngine.getDeploymentLogs(deploymentId);
+      res.json({ logs });
+    } catch (error) {
+      console.error("Error fetching deployment logs:", error);
+      res.status(500).json({ message: "Failed to fetch deployment logs" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
