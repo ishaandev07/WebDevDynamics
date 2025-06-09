@@ -182,16 +182,26 @@ export default function DeploymentPreview({ deployment }: DeploymentPreviewProps
               <div>
                 <div className="font-medium text-slate-900">Application URL</div>
                 <div className="text-sm text-slate-600">
-                  Click to view your deployed application
+                  Your deployed application is live and accessible
                 </div>
               </div>
-              <Button
-                onClick={() => setShowPreview(true)}
-                className="flex items-center space-x-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span>View Application</span>
-              </Button>
+              <div className="flex space-x-2">
+                <Button
+                  onClick={() => setShowPreview(!showPreview)}
+                  variant="outline"
+                  className="flex items-center space-x-2"
+                >
+                  <Monitor className="h-4 w-4" />
+                  <span>{showPreview ? "Hide" : "Show"} Preview</span>
+                </Button>
+                <Button
+                  onClick={() => window.open(`/deployed/${deployment.id}`, '_blank')}
+                  className="flex items-center space-x-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Open App</span>
+                </Button>
+              </div>
             </div>
           </div>
         ) : (

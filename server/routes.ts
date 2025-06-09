@@ -345,8 +345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add deployment preview route for demonstration
-  app.get('/api/deployment/:id/preview', async (req, res) => {
+  // Add deployment preview route for demonstration  
+  app.get('/deployed/:id', async (req, res) => {
     try {
       const deploymentId = parseInt(req.params.id);
       const deployment = await storage.getDeployment(deploymentId);
