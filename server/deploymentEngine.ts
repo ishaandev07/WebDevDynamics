@@ -422,20 +422,20 @@ if __name__ == "__main__":
     // Generate mock deployment URL
     const deploymentUrl = `https://deployment-${deploymentId}-${Date.now()}.replit.app`;
     
-    // Simulate success or failure (90% success rate)
-    const isSuccess = Math.random() > 0.1;
+    // Ensure higher success rate for better user experience (95% success rate)
+    const isSuccess = Math.random() > 0.05;
     
     if (isSuccess) {
       await storage.updateDeployment(deploymentId, {
-        status: 'deployed',
+        status: 'success',
         deploymentUrl,
         logs: `${(await storage.getDeployment(deploymentId))?.logs || ''}✓ Deployment completed successfully!\nApplication available at: ${deploymentUrl}\n`
       });
     } else {
       await storage.updateDeployment(deploymentId, {
         status: 'failed',
-        errorMessage: 'Port binding failed: EADDRINUSE',
-        logs: `${(await storage.getDeployment(deploymentId))?.logs || ''}✗ Deployment failed: Port 8080 is already in use\n`
+        errorMessage: 'Build process failed during dependency installation',
+        logs: `${(await storage.getDeployment(deploymentId))?.logs || ''}✗ Deployment failed: Unable to install required dependencies\nPlease check your package.json file and try again.\n`
       });
     }
   }
