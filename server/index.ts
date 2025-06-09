@@ -37,6 +37,26 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Register deployment asset routes BEFORE Vite middleware
+  const { deploymentEngine } = await import("./deploymentEngine");
+  
+  // Priority deployment asset serving (before Vite can intercept)
+  app.get('/deployed/:id/:filename', async (req, res) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const filename = req.params.filename;
+      
+      if (isNaN(deploymentId) || !filename.includes('.')) {
+        return res.status(400).send('Invalid request');
+      }
+      
+      await deploymentEngine.serveAsset(deploymentId, filename, res);
+    } catch (error) {
+      console.error('Error serving deployment file:', error);
+      res.status(404).send('File not found');
+    }
+  });
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

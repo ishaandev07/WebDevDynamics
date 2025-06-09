@@ -377,7 +377,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Add static file serving for deployments
+  // Add direct asset serving for CSS, JS, and other files
+  app.get('/deployed/:id/:filename', async (req, res, next) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const filename = req.params.filename;
+      
+      if (isNaN(deploymentId)) {
+        return res.status(400).send('Invalid deployment ID');
+      }
+      
+      // Check if it's an asset file (has extension)
+      if (filename && filename.includes('.')) {
+        // Set no-cache headers to bypass Vite
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        await deploymentEngine.serveAsset(deploymentId, filename, res);
+      } else {
+        // If not an asset, serve the main deployment page
+        await deploymentEngine.serveDeployment(deploymentId, req, res);
+      }
+    } catch (error) {
+      console.error('Error serving deployment file:', error);
+      res.status(404).send('File not found');
+    }
+  });
+
+  // Add static file serving for deployments in assets subfolder
   app.get('/deployed/:id/assets/*', async (req, res) => {
     try {
       const deploymentId = parseInt(req.params.id);
