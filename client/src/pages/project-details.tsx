@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import DeploymentLogs from "@/components/deployments/deployment-logs";
 import DeploymentConfig from "@/components/deployments/deployment-config";
+import DeploymentPreview from "@/components/deployments/deployment-preview";
 
 interface Project {
   id: number;
@@ -472,6 +473,14 @@ export default function ProjectDetails() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Application Preview */}
+      {latestDeployment && latestDeployment.status === 'success' && (
+        <DeploymentPreview deployment={{
+          ...latestDeployment,
+          project: project
+        }} />
       )}
 
       {/* Deployment Logs */}
