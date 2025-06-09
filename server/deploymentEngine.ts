@@ -101,43 +101,74 @@ export class DeploymentEngine {
   private async optimizeWebFile(file: any, analysis: any): Promise<string> {
     let content = file.content;
     
-    // Optimize HTML files
+    // Use AI to deeply optimize each file for production deployment
     if (file.name.endsWith('.html')) {
-      // Add meta tags for SEO and performance
-      content = content.replace(
-        '<head>',
-        `<head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Deployed with Smart Deployment Platform">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="dns-prefetch" href="//fonts.googleapis.com">`
-      );
-      
-      // Add performance optimizations
-      if (!content.includes('defer') && content.includes('<script src=')) {
-        content = content.replace(/<script src="/g, '<script defer src="');
+      const prompt = `Transform this HTML file into a production-ready version. Enhance it with:
+- Proper DOCTYPE, meta tags, and SEO optimization
+- Responsive design with viewport settings
+- Performance optimizations (preload, defer, minification)
+- Error handling and fallbacks
+- Accessibility improvements
+- Modern HTML5 semantic structure
+- Security headers and CSP
+
+Original HTML:
+${content}
+
+Return only the enhanced HTML:`;
+
+      try {
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, {});
+        return optimizedContent;
+      } catch (error) {
+        console.error('AI HTML optimization failed:', error);
       }
     }
     
-    // Optimize CSS files
     if (file.name.endsWith('.css')) {
-      // Add critical CSS optimizations
-      content = `/* Optimized for production deployment */\n${content}`;
-      
-      // Add performance hints
-      if (!content.includes('will-change')) {
-        content = content.replace(/transform:/g, 'will-change: transform; transform:');
+      const prompt = `Transform this CSS into production-ready code. Enhance it with:
+- Modern CSS3 features and flexbox/grid optimizations
+- Responsive design patterns and media queries
+- Performance optimizations and critical CSS
+- Cross-browser compatibility fixes
+- Animation and transition improvements
+- Accessibility enhancements
+- Mobile-first design patterns
+
+Original CSS:
+${content}
+
+Return only the enhanced CSS:`;
+
+      try {
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, {});
+        return optimizedContent;
+      } catch (error) {
+        console.error('AI CSS optimization failed:', error);
       }
     }
     
-    // Optimize JavaScript files
     if (file.name.endsWith('.js')) {
-      // Add performance monitoring
-      content = `// Production optimized build\n${content}`;
-      
-      // Add error handling if not present
-      if (!content.includes('try') && !content.includes('catch')) {
-        content = `try {\n${content}\n} catch (error) { console.error('Runtime error:', error); }`;
+      const prompt = `Transform this JavaScript into production-ready code. Enhance it with:
+- Comprehensive error handling and try-catch blocks
+- Performance optimizations and memory management
+- Modern ES6+ features and best practices
+- Event delegation and proper cleanup
+- Loading states and user feedback
+- Mobile touch event handling
+- Data validation and sanitization
+- Progressive enhancement patterns
+
+Original JavaScript:
+${content}
+
+Return only the enhanced JavaScript:`;
+
+      try {
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, {});
+        return optimizedContent;
+      } catch (error) {
+        console.error('AI JavaScript optimization failed:', error);
       }
     }
     
@@ -148,19 +179,28 @@ export class DeploymentEngine {
     let content = file.content;
     
     if (file.name.endsWith('.js') || file.name.endsWith('.ts')) {
-      // Add production environment checks
-      if (!content.includes('process.env.NODE_ENV')) {
-        content = `const NODE_ENV = process.env.NODE_ENV || 'production';\n${content}`;
-      }
-      
-      // Add error handling middleware
-      if (content.includes('express()') && !content.includes('error handler')) {
-        content += `\n\n// Production error handler\napp.use((err, req, res, next) => {\n  console.error(err.stack);\n  res.status(500).send('Something broke!');\n});`;
-      }
-      
-      // Add health check endpoint if not present
-      if (content.includes('express()') && !content.includes('/health')) {
-        content += `\n\n// Health check endpoint\napp.get('/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString() }));`;
+      const prompt = `Transform this Node.js/TypeScript file into production-ready code. Enhance it with:
+- Environment variable configuration and validation
+- Comprehensive error handling and logging
+- Performance optimizations and caching
+- Security middleware and rate limiting
+- Health checks and monitoring endpoints
+- Graceful shutdown handling
+- Database connection pooling optimizations
+- CORS and security headers
+- Request validation and sanitization
+- Production-ready middleware stack
+
+Original Node.js code:
+${content}
+
+Return only the enhanced Node.js code:`;
+
+      try {
+        const optimizedContent = await aiAssistant.chatWithAssistant(prompt, 'system');
+        return optimizedContent;
+      } catch (error) {
+        console.error('AI Node.js optimization failed:', error);
       }
     }
     
