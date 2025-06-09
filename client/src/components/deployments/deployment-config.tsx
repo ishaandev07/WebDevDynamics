@@ -353,11 +353,11 @@ CMD ["./deploy.sh"]`;
           ))}
         </Tabs>
 
-        {deploymentGuide?.guide && (
+        {deploymentGuide && typeof deploymentGuide === 'object' && 'guide' in deploymentGuide && (
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <h4 className="font-semibold text-blue-900 mb-2">Deployment Guide</h4>
             <div className="text-sm text-blue-800 whitespace-pre-wrap">
-              {deploymentGuide.guide}
+              {(deploymentGuide as any).guide}
             </div>
           </div>
         )}
