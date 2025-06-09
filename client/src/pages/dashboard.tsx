@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import StatsOverview from "@/components/stats/stats-overview";
 import FileUpload from "@/components/upload/file-upload";
+import ProjectList from "@/components/projects/project-list";
 import DeploymentTable from "@/components/deployments/deployment-table";
 import { Link } from "wouter";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -56,6 +57,9 @@ export default function Dashboard() {
       <div className="p-6 space-y-8">
         {/* Stats Overview */}
         <StatsOverview />
+
+        {/* Recent Projects */}
+        <ProjectList />
 
         {/* Quick Upload Section */}
         <div className="bg-white rounded-xl border border-slate-200 p-6">
