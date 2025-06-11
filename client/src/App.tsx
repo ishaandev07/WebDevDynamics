@@ -29,24 +29,16 @@ function Router() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navigation />
-      <div className="flex h-screen">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          <Switch>
-            <Route path="/" component={Dashboard} />
-            <Route path="/upload" component={Upload} />
-            <Route path="/projects/:id" component={ProjectDetails} />
-            <Route path="/deployments" component={Deployments} />
-            <Route path="/pricing" component={Pricing} />
-            <Route path="/settings" component={Settings} />
-            <Route component={NotFound} />
-          </Switch>
-        </main>
-        <ChatSidebar />
-      </div>
-    </div>
+    <Switch>
+      <Route path="/" component={Upload} />
+      <Route path="/upload" component={Upload} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/projects/:id" component={ProjectDetails} />
+      <Route path="/deployments" component={Deployments} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/settings" component={Settings} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
