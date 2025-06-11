@@ -6,8 +6,9 @@ async function runMigrations() {
   
   try {
     // Run migrations
-    migrate(db, { migrationsFolder: "./migrations" });
+    migrate(db, { migrationsFolder: "./migrations-sqlite" });
     console.log("✅ Migrations completed successfully!");
+    console.log("✅ SQLite database created at: ./database.sqlite");
     
     // Close database connection
     sqlite.close();
