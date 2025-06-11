@@ -16,7 +16,7 @@ import {
   type Transaction,
 } from "../shared/schema.sqlite";
 import { db } from "./db.sqlite";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -161,7 +161,7 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(chatMessages)
-        .where(eq(chatMessages.userId, userId) && eq(chatMessages.projectId, projectId))
+        .where(and(eq(chatMessages.userId, userId), eq(chatMessages.projectId, projectId)))
         .orderBy(chatMessages.createdAt);
     }
 
