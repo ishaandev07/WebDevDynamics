@@ -546,33 +546,40 @@ echo "🎉 Deployment successful!"`;
       // Check if optimized deployment exists
       await fs.access(optimizedPath);
       
-      // Serve the main file based on framework
-      const indexPath = path.join(optimizedPath, 'index.html');
+      // Find the actual website entry point
+      const indexPath = await this.findWebsiteEntryPoint(optimizedPath);
       
-      // Try to serve HTML first
-      try {
-        let htmlContent = await fs.readFile(indexPath, 'utf-8');
-        
-        // Ensure proper asset paths for the deployed environment
-        htmlContent = htmlContent.replace(
-          /href="([^"]+\.(css|ico))"/g, 
-          `href="/deployed/${deploymentId}/$1"`
-        );
-        htmlContent = htmlContent.replace(
-          /src="([^"]+\.(js|png|jpg|jpeg|gif|svg))"/g, 
-          `src="/deployed/${deploymentId}/$1"`
-        );
-        
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.send(htmlContent);
-        return;
-      } catch (htmlError) {
-        // If no HTML, create a deployment status page
-        const statusPage = await this.generateDeploymentStatusPage(deploymentId, optimizedPath);
-        res.setHeader('Content-Type', 'text/html');
-        res.send(statusPage);
+      if (indexPath) {
+        try {
+          let htmlContent = await fs.readFile(indexPath, 'utf-8');
+          
+          // Get the relative directory from the deployment root to fix asset paths
+          const relativeDir = path.relative(optimizedPath, path.dirname(indexPath));
+          const basePrefix = relativeDir ? `/${relativeDir}/` : '/';
+          
+          // Fix asset paths to work with the deployment structure
+          htmlContent = htmlContent.replace(
+            /href="(?!http|\/\/)([^"]+\.(css|ico))"/g, 
+            `href="/deployed/${deploymentId}${basePrefix}$1"`
+          );
+          htmlContent = htmlContent.replace(
+            /src="(?!http|\/\/)([^"]+\.(js|png|jpg|jpeg|gif|svg))"/g, 
+            `src="/deployed/${deploymentId}${basePrefix}$1"`
+          );
+          
+          res.setHeader('Content-Type', 'text/html; charset=utf-8');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.send(htmlContent);
+          return;
+        } catch (htmlError) {
+          console.error('Error reading HTML file:', htmlError);
+        }
       }
+      
+      // If no HTML found, create a deployment status page
+      const statusPage = await this.generateDeploymentStatusPage(deploymentId, optimizedPath);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(statusPage);
       
     } catch (error) {
       console.error(`Error serving deployment ${deploymentId}:`, error);
@@ -580,33 +587,131 @@ echo "🎉 Deployment successful!"`;
     }
   }
 
+  private async findWebsiteEntryPoint(deploymentPath: string): Promise<string | null> {
+    // Common entry point locations to check
+    const entryPoints = [
+      'index.html',
+      'client/index.html',
+      'public/index.html',
+      'dist/index.html',
+      'build/index.html',
+      'src/index.html'
+    ];
+    
+    // Also search for any HTML files in subdirectories
+    try {
+      const allFiles = await this.findAllHtmlFiles(deploymentPath);
+      
+      // Prioritize common entry points
+      for (const entryPoint of entryPoints) {
+        const fullPath = path.join(deploymentPath, entryPoint);
+        try {
+          await fs.access(fullPath);
+          return fullPath;
+        } catch {}
+      }
+      
+      // If no common entry points found, use the first HTML file found
+      if (allFiles.length > 0) {
+        return allFiles[0];
+      }
+    } catch (error) {
+      console.error('Error finding website entry point:', error);
+    }
+    
+    return null;
+  }
+
+  private async findAllHtmlFiles(dir: string, htmlFiles: string[] = []): Promise<string[]> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        
+        if (entry.isDirectory()) {
+          await this.findAllHtmlFiles(fullPath, htmlFiles);
+        } else if (entry.isFile() && entry.name.endsWith('.html')) {
+          htmlFiles.push(fullPath);
+        }
+      }
+    } catch (error) {
+      // Ignore errors for inaccessible directories
+    }
+    
+    return htmlFiles;
+  }
+
   async serveAsset(deploymentId: number, assetPath: string, res: any): Promise<void> {
     const optimizedPath = path.join(this.optimizedDir, `deployment-${deploymentId}`);
-    const fullAssetPath = path.join(optimizedPath, assetPath);
     
-    try {
-      const assetContent = await fs.readFile(fullAssetPath);
-      
-      // Set appropriate content type
-      const ext = path.extname(assetPath).toLowerCase();
-      const contentTypes: { [key: string]: string } = {
-        '.js': 'application/javascript',
-        '.css': 'text/css',
-        '.png': 'image/png',
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.gif': 'image/gif',
-        '.svg': 'image/svg+xml',
-        '.ico': 'image/x-icon'
-      };
-      
-      res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream');
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-      res.send(assetContent);
-      
-    } catch (error) {
-      console.error(`Error serving asset ${assetPath} for deployment ${deploymentId}:`, error);
+    // Try multiple possible asset locations
+    const possiblePaths = [
+      path.join(optimizedPath, assetPath),
+      path.join(optimizedPath, 'client', assetPath),
+      path.join(optimizedPath, 'public', assetPath),
+      path.join(optimizedPath, 'dist', assetPath),
+      path.join(optimizedPath, 'build', assetPath)
+    ];
+    
+    // Also search subdirectories for the asset
+    const subdirs = await this.getSubdirectories(optimizedPath);
+    for (const subdir of subdirs) {
+      possiblePaths.push(path.join(optimizedPath, subdir, assetPath));
+      possiblePaths.push(path.join(optimizedPath, subdir, 'client', assetPath));
+      possiblePaths.push(path.join(optimizedPath, subdir, 'public', assetPath));
+    }
+    
+    let assetContent: Buffer | null = null;
+    let foundPath: string | null = null;
+    
+    for (const testPath of possiblePaths) {
+      try {
+        assetContent = await fs.readFile(testPath);
+        foundPath = testPath;
+        break;
+      } catch {
+        // Continue to next path
+      }
+    }
+    
+    if (!assetContent || !foundPath) {
+      console.error(`Asset not found: ${assetPath} for deployment ${deploymentId}`);
       res.status(404).send('Asset not found');
+      return;
+    }
+    
+    // Set appropriate content type
+    const ext = path.extname(assetPath).toLowerCase();
+    const contentTypes: { [key: string]: string } = {
+      '.js': 'application/javascript',
+      '.css': 'text/css',
+      '.html': 'text/html',
+      '.png': 'image/png',
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.gif': 'image/gif',
+      '.svg': 'image/svg+xml',
+      '.ico': 'image/x-icon',
+      '.woff': 'font/woff',
+      '.woff2': 'font/woff2',
+      '.ttf': 'font/ttf',
+      '.json': 'application/json'
+    };
+    
+    res.setHeader('Content-Type', contentTypes[ext] || 'application/octet-stream');
+    res.setHeader('Cache-Control', 'public, max-age=31536000');
+    res.send(assetContent);
+  }
+
+  private async getSubdirectories(dir: string): Promise<string[]> {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      return entries
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name);
+    } catch {
+      return [];
     }
   }
 
