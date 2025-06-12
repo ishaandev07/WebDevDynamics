@@ -457,6 +457,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Serve React source files directly
+  app.get('/deployed/:id/src/:filename', async (req, res) => {
+    try {
+      const deploymentId = parseInt(req.params.id);
+      const filename = req.params.filename;
+      
+      if (isNaN(deploymentId)) {
+        return res.status(400).send('Invalid deployment ID');
+      }
+      
+      // Look for the file in the deployment's client/src directory
+      const possiblePaths = [
+        path.join(process.cwd(), 'optimized-deployments', `deployment-${deploymentId}`, 'AiSaasStarter-main', 'client', 'src', filename),
+        path.join(process.cwd(), 'optimized-deployments', `deployment-${deploymentId}`, 'client', 'src', filename),
+        path.join(process.cwd(), 'optimized-deployments', `deployment-${deploymentId}`, 'src', filename)
+      ];
+      
+      for (const filePath of possiblePaths) {
+        try {
+          await fs.access(filePath);
+          const content = await fs.readFile(filePath, 'utf8');
+          
+          res.setHeader('Content-Type', 'application/javascript');
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.send(content);
+          return;
+        } catch (err) {
+          continue;
+        }
+      }
+      
+      res.status(404).send('Source file not found');
+    } catch (error) {
+      console.error('Error serving React module:', error);
+      res.status(500).send('Error loading module');
+    }
+  });
+
   // Add direct asset serving for CSS, JS, and other files
   app.get('/deployed/:id/:filename', async (req, res, next) => {
     try {
