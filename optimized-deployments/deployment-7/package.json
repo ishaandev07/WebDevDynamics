@@ -1,9 +1,0 @@
-{
-  "name": "deployment-app",
-  "version": "1.0.0",
-  "scripts": {
-    "start": "node server.js",
-    "start:prod": "NODE_ENV=production npm start",
-    "health": "curl -f http://localhost:3000/health || exit 1"
-  }
-}
