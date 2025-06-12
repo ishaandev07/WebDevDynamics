@@ -88,9 +88,12 @@ export class DeploymentEngine {
       // For React/Vue/Angular projects, create a production-ready version
       if (framework.includes('react') || framework.includes('vue') || framework.includes('angular')) {
         if (file.name.endsWith('.html')) {
-          // Create a production HTML that loads the actual React app content
-          const projectInfo = await this.extractProjectInfo(analysis, file);
-          processedContent = this.generateProductionReactHTML(projectInfo, file.content);
+          // For React HTML files, preserve original structure but add title if missing
+          processedContent = file.content;
+          if (!processedContent.includes('<title>')) {
+            const projectInfo = await this.extractProjectInfo(analysis, file);
+            processedContent = processedContent.replace('<head>', `<head>\n    <title>${projectInfo.name}</title>`);
+          }
         } else {
           // Keep all other files as-is for serving
           processedContent = file.content;
