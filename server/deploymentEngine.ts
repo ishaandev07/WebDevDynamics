@@ -85,9 +85,16 @@ export class DeploymentEngine {
       
       let processedContent = file.content;
       
-      // Apply framework-specific optimizations
+      // For React/Vue/Angular projects, preserve original content to serve the actual application
       if (framework.includes('react') || framework.includes('vue') || framework.includes('angular')) {
-        processedContent = await this.optimizeWebFile(file, analysis);
+        // Only add title to HTML files if missing, preserve everything else
+        if (file.name.endsWith('.html') && !file.content.includes('<title>')) {
+          const projectName = analysis?.name || 'Web Application';
+          processedContent = file.content.replace('<head>', `<head>\n    <title>${projectName}</title>`);
+        } else {
+          // Keep original content for all other files
+          processedContent = file.content;
+        }
       } else if (framework.includes('node') || framework.includes('express')) {
         processedContent = await this.optimizeNodeFile(file, analysis);
       } else if (framework.includes('python') || framework.includes('flask') || framework.includes('django')) {
@@ -101,18 +108,22 @@ export class DeploymentEngine {
   private async optimizeWebFile(file: any, analysis: any): Promise<string> {
     let content = file.content;
     
-    // For React/Vue/Angular development HTML files, create a production-ready version
-    if (file.name.endsWith('.html') && (content.includes('/src/main.tsx') || content.includes('/src/main.ts') || content.includes('/src/main.js') || content.includes('vite') || content.includes('webpack'))) {
-      // Extract project information from the content and file structure
-      const projectInfo = await this.extractProjectInfo(analysis, file);
+    // For development HTML files that reference React/Vue/Angular source files
+    if (file.name.endsWith('.html') && (content.includes('/src/main.tsx') || content.includes('/src/main.ts') || content.includes('/src/main.js'))) {
+      // Convert development references to work in production
+      content = content.replace(/\/src\/main\.(tsx|ts|js)/g, '/assets/main.$1');
       
-      return this.generateProductionHTML(projectInfo);
+      // Add basic optimizations while preserving original structure
+      if (!content.includes('viewport')) {
+        content = content.replace('<head>', '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">');
+      }
+      
+      return content;
     }
     
-    // For other HTML files, apply basic optimizations
+    // For other HTML files, apply minimal optimizations to preserve original content
     if (file.name.endsWith('.html')) {
-      // Basic HTML optimizations
-      content = content.replace(/\s+/g, ' ').trim();
+      // Only add viewport if missing, preserve everything else
       if (!content.includes('viewport')) {
         content = content.replace('<head>', '<head>\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">');
       }
