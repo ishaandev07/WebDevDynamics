@@ -34,7 +34,8 @@ export class FileStorageService {
   }
 
   async extractZipContents(fileName: string): Promise<FileInfo[]> {
-    const filePath = path.join(this.uploadsDir, fileName);
+    // Handle both absolute paths and relative file names
+    const filePath = fileName.includes('/') ? fileName : path.join(this.uploadsDir, fileName);
     
     try {
       // Check if it's a directory (folder upload) or file (ZIP upload)
@@ -122,7 +123,7 @@ export class FileStorageService {
             });
           } catch (error) {
             // Skip files that can't be read
-            console.warn(`Could not read file ${relativePath}:`, error.message);
+            console.warn(`Could not read file ${relativePath}:`, (error as Error).message);
           }
         }
       }
@@ -148,7 +149,7 @@ export class FileStorageService {
     try {
       await execAsync(`rm -rf "${dirPath}"`);
     } catch (error) {
-      console.warn(`Failed to remove directory ${dirPath}:`, error.message);
+      console.warn(`Failed to remove directory ${dirPath}:`, (error as Error).message);
     }
   }
 
@@ -157,7 +158,7 @@ export class FileStorageService {
     try {
       await fs.promises.unlink(filePath);
     } catch (error) {
-      console.warn(`Failed to delete file ${fileName}:`, error.message);
+      console.warn(`Failed to delete file ${fileName}:`, (error as Error).message);
     }
   }
 

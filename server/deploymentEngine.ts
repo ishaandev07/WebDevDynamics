@@ -46,8 +46,8 @@ export class DeploymentEngine {
     try {
       console.log(`Processing and optimizing project for deployment ${deploymentId}`);
       
-      // Get project files
-      const files = await fileStorage.extractZipContents(project.fileName);
+      // Get project files using the full file path
+      const files = await fileStorage.extractZipContents(project.filePath);
       
       // Analyze project with AI for optimization opportunities
       const analysis = await aiAssistant.analyzeProject(files);
@@ -707,7 +707,7 @@ echo "🎉 Deployment successful!"`;
         throw new Error('Project not found');
       }
 
-      const files = await fileStorage.extractZipContents(project.fileName);
+      const files = await fileStorage.extractZipContents(project.filePath);
       const guidance = await aiAssistant.getDeploymentGuidance(
         files,
         project.framework || 'unknown',
