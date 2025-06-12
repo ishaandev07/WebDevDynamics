@@ -263,7 +263,7 @@ export default function Upload() {
                   <input
                     id="fileInput"
                     type="file"
-                    accept=".zip,.tar,.gz,.tar.gz"
+                    accept=".zip,.tar,.gz,.tar.gz,.js,.ts,.jsx,.tsx,.html,.css,.py,.json,.md,.txt,.yml,.yaml,.xml,.php,.java,.cpp,.c,.h,.go,.rs,.rb,.sh,.sql,.env"
                     onChange={handleFileSelect}
                     className="hidden"
                   />
@@ -274,7 +274,7 @@ export default function Upload() {
             {/* Enhanced format info */}
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               <div className="px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-slate-200 text-sm text-slate-600">
-                📦 ZIP, TAR, TAR.GZ
+                📦 ZIP, TAR, individual files
               </div>
               <div className="px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full border border-slate-200 text-sm text-slate-600">
                 📏 Max 100MB

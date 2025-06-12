@@ -17,10 +17,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     limits: {
       fileSize: 100 * 1024 * 1024, // 100MB limit
     },
-  }).fields([
-    { name: 'file', maxCount: 1 },
-    { name: 'files', maxCount: 1000 }
-  ]);
+  }).single('file');
 
   // Auth middleware
   await setupAuth(app);
@@ -41,47 +38,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/projects', isAuthenticated, upload, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { name, description, uploadType, paths } = req.body;
+      const { name, description } = req.body;
       
-      if (!name) {
-        return res.status(400).json({ message: "Project name is required" });
+      console.log('Upload request received:', { name, description, file: req.file ? 'present' : 'missing' });
+      
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
       }
 
+      const uploadedFile = req.file;
       let fileName, fileSize, files = [];
 
-      if (uploadType === 'zip' && req.files?.file?.[0]) {
-        // Handle ZIP file upload
-        const zipFile = req.files.file[0];
-        fileName = await fileStorage.saveUploadedFile(zipFile.originalname, zipFile.buffer);
-        fileSize = zipFile.size;
-      } else if (uploadType === 'folder' && req.files?.files) {
-        // Handle folder upload - create files array with paths
-        const uploadedFiles = req.files.files;
-        const pathsArray = Array.isArray(paths) ? paths : [paths];
-        
-        for (let i = 0; i < uploadedFiles.length; i++) {
-          const file = uploadedFiles[i];
-          const relativePath = pathsArray[i] || file.originalname;
-          files.push({
-            name: file.originalname,
-            path: relativePath,
-            content: file.buffer.toString('utf8'),
-            size: file.size
-          });
+      // Handle both ZIP and individual files
+      if (uploadedFile.originalname.toLowerCase().endsWith('.zip') || 
+          uploadedFile.originalname.toLowerCase().endsWith('.tar') || 
+          uploadedFile.originalname.toLowerCase().endsWith('.gz')) {
+        // Handle archive files (ZIP, TAR, etc.)
+        try {
+          fileName = await fileStorage.saveUploadedFile(uploadedFile.originalname, uploadedFile.buffer);
+          fileSize = uploadedFile.size;
+          
+          // Try to extract the archive
+          files = await fileStorage.extractZipContents(fileName);
+          console.log(`Extracted ${files.length} files from archive`);
+        } catch (extractError) {
+          console.error('Error extracting archive:', extractError);
+          // If extraction fails, treat as single file
+          files = [{
+            name: uploadedFile.originalname,
+            content: uploadedFile.buffer.toString('utf8'),
+            size: uploadedFile.size
+          }];
         }
-        
-        fileName = `folder-${Date.now()}`;
-        fileSize = files.reduce((acc, file) => acc + file.size, 0);
       } else {
-        return res.status(400).json({ message: "No files uploaded" });
+        // Handle individual files
+        try {
+          const content = uploadedFile.buffer.toString('utf8');
+          files = [{
+            name: uploadedFile.originalname,
+            content: content,
+            size: uploadedFile.size
+          }];
+          fileName = uploadedFile.originalname;
+          fileSize = uploadedFile.size;
+          console.log(`Processing individual file: ${uploadedFile.originalname}`);
+        } catch (error) {
+          console.error('Error processing file:', error);
+          return res.status(400).json({ message: "Could not process the uploaded file" });
+        }
       }
 
       // Create project record
       const projectData = insertProjectSchema.parse({
         userId,
-        name,
-        description: description || '',
-        fileName: uploadType === 'zip' ? req.files.file[0].originalname : `${name}-folder`,
+        name: name || fileName || 'Uploaded Project',
+        description: description || `Uploaded file: ${uploadedFile.originalname}`,
+        fileName: uploadedFile.originalname,
         filePath: fileName,
         fileSize: fileSize,
         status: 'uploaded'
@@ -452,7 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/deployed/:id/assets/*', async (req, res) => {
     try {
       const deploymentId = parseInt(req.params.id);
-      const assetPath = req.params['0'] || '';
+      const assetPath = req.url.split('/assets/')[1] || '';
       
       if (isNaN(deploymentId)) {
         return res.status(400).send('Invalid deployment ID');
