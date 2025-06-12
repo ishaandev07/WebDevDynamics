@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Upload as UploadIcon, CheckCircle, AlertCircle, FileText, Code, Zap } from "lucide-react";
+import { Upload as UploadIcon, CheckCircle, AlertCircle, FileText, Code, Zap, Rocket, ExternalLink, Globe, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
@@ -13,10 +13,18 @@ interface UploadState {
   projectId?: number;
 }
 
+interface DeployState {
+  stage: 'idle' | 'deploying' | 'deployed' | 'error';
+  deploymentId?: number;
+  deploymentUrl?: string;
+  error?: string;
+}
+
 export default function Upload() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
   const [uploadState, setUploadState] = useState<UploadState>({ stage: 'idle', progress: 0 });
+  const [deployState, setDeployState] = useState<DeployState>({ stage: 'idle' });
   const [dragActive, setDragActive] = useState(false);
 
   useEffect(() => {
@@ -190,6 +198,55 @@ export default function Upload() {
 
   const resetUpload = () => {
     setUploadState({ stage: 'idle', progress: 0 });
+    setDeployState({ stage: 'idle' });
+  };
+
+  const handleDeploy = async (projectId: number) => {
+    setDeployState({ stage: 'deploying' });
+    
+    try {
+      console.log('Starting deployment for project:', projectId);
+      
+      const response = await fetch(`/api/projects/${projectId}/deploy`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Deployment failed with status ${response.status}`);
+      }
+
+      const deployment = await response.json();
+      console.log('Deployment successful:', deployment);
+      
+      setDeployState({ 
+        stage: 'deployed', 
+        deploymentId: deployment.id,
+        deploymentUrl: `${window.location.origin}/deployed/${deployment.id}`
+      });
+
+      toast({
+        title: "Deployment Successful!",
+        description: "Your project has been deployed and is now live.",
+        variant: "default",
+      });
+
+    } catch (error: any) {
+      console.error('Deployment error:', error);
+      setDeployState({ 
+        stage: 'error', 
+        error: error.message || 'Deployment failed. Please try again.'
+      });
+      
+      toast({
+        title: "Deployment Failed",
+        description: error.message || "There was an error deploying your project. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (isLoading || !isAuthenticated) {
@@ -576,25 +633,111 @@ export default function Upload() {
               </div>
 
               {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <div className="flex flex-col sm:flex-row justify-center gap-4 mb-6">
+                {deployState.stage === 'idle' && (
+                  <Button 
+                    onClick={() => handleDeploy(uploadState.projectId!)}
+                    className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white px-8 py-4 text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    size="lg"
+                  >
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Deploy Live Now
+                  </Button>
+                )}
+                
+                {deployState.stage === 'deploying' && (
+                  <Button 
+                    disabled
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 text-lg rounded-2xl shadow-lg"
+                    size="lg"
+                  >
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Deploying...
+                  </Button>
+                )}
+                
+                {deployState.stage === 'deployed' && (
+                  <Button 
+                    onClick={() => window.open(deployState.deploymentUrl, '_blank')}
+                    className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 hover:from-green-700 hover:via-emerald-700 hover:to-teal-700 text-white px-8 py-4 text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                    size="lg"
+                  >
+                    <Globe className="w-5 h-5 mr-2" />
+                    View Live Site
+                  </Button>
+                )}
+                
                 <Button 
                   onClick={() => window.open(`/deployed/${uploadState.projectId}`, '_blank')}
-                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white px-8 py-4 text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+                  variant="outline"
+                  className="border-2 border-blue-300 hover:border-blue-400 hover:bg-blue-50 px-8 py-4 text-lg rounded-2xl transition-all duration-300"
                   size="lg"
                 >
                   <Code className="w-5 h-5 mr-2" />
                   View Optimized Code
                 </Button>
+                
                 <Button 
                   variant="outline" 
                   onClick={resetUpload}
-                  className="border-2 border-slate-300 hover:border-blue-400 hover:bg-blue-50 px-8 py-4 text-lg rounded-2xl transition-all duration-300"
+                  className="border-2 border-slate-300 hover:border-slate-400 hover:bg-slate-50 px-8 py-4 text-lg rounded-2xl transition-all duration-300"
                   size="lg"
                 >
                   <UploadIcon className="w-5 h-5 mr-2" />
                   Upload Another Project
                 </Button>
               </div>
+
+              {/* Deployment success message */}
+              {deployState.stage === 'deployed' && (
+                <div className="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-2xl p-6 border border-green-200/50 shadow-lg">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mr-3">
+                      <Globe className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold text-green-900">🚀 Deployment Complete!</h4>
+                      <p className="text-green-700">Your project is now live and accessible</p>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-green-200/50">
+                    <p className="text-sm text-slate-600 mb-2">Live URL:</p>
+                    <div className="flex items-center justify-between bg-slate-50 rounded-lg p-3">
+                      <code className="text-sm font-mono text-slate-800">{deployState.deploymentUrl}</code>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigator.clipboard.writeText(deployState.deploymentUrl || '')}
+                        className="ml-2"
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Deployment error message */}
+              {deployState.stage === 'error' && (
+                <div className="bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl p-6 border border-red-200/50 shadow-lg">
+                  <div className="flex items-center mb-4">
+                    <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
+                    <div>
+                      <h4 className="text-xl font-bold text-red-900">Deployment Failed</h4>
+                      <p className="text-red-700">{deployState.error}</p>
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={() => handleDeploy(uploadState.projectId!)}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    <Rocket className="w-4 h-4 mr-2" />
+                    Retry Deployment
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}
