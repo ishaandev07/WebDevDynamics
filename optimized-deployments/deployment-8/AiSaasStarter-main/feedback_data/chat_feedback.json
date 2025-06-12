@@ -1,0 +1,49 @@
+[
+  {
+    "sessionId": "session_1749726235509_4kjeh1ora",
+    "message": "i cannot provision order",
+    "response": "I found several relevant solutions in our knowledge base:\n\n**Solution 1** (31% match from internal_mistral):\nHi, \\\n\\\nPlease provide additional details (like order ID, quote ID) to help you better.,Provide us order details to proceed .\n\n**Solution 2** (30% match from internal_mistral):\nAs confirmed by AG team changes cannot be done\n\n**Solution 3** (30% match from internal_mistral):\nAs confirmed by AG team changes cannot be done\n\nWhich solution works best for your situation?",
+    "rating": 5,
+    "feedback": "Helpful",
+    "id": "fb_1749726253507_wpau88m8q",
+    "timestamp": "2025-06-12T11:04:13.507Z"
+  },
+  {
+    "sessionId": "session_1749712509019_h525fa0zv",
+    "message": "what is your name",
+    "response": "I found several relevant solutions in our knowledge base:\n\n**Solution 1** (52% match from internal_mistral):\nAssign Ticket to L1 Resolver Group\n\n**Solution 2** (45% match from internal_mistral):\nPlease provide additional details (domain name and customer name) along with the a screenshot of the issue to help you better.\n\n**Solution 3** (44% match from internal_mistral):\nAssign Ticket to L1 Resolver Group\n\nWhich solution works best for your situation?",
+    "rating": 2,
+    "feedback": "Not helpful",
+    "id": "fb_1749712670806_b3s4cnaie",
+    "timestamp": "2025-06-12T07:17:50.806Z"
+  },
+  {
+    "sessionId": "session_1749707338587_7ytmy3hcr",
+    "message": "i cannot provision order",
+    "response": "I understand your question, but I don't have specific information about this topic in my current knowledge base. Let me provide some general guidance:\n\nBased on your query \"i cannot provision order\", you might want to:\n- Check our FAQ section\n- Contact our support team directly\n- Provide more specific details about your issue",
+    "rating": 5,
+    "feedback": "Helpful response",
+    "messageId": "ai-1749707347030",
+    "id": "fb_1749707436661_uspb485g5",
+    "timestamp": "2025-06-12T05:50:36.661Z"
+  },
+  {
+    "sessionId": "session_1749707338587_7ytmy3hcr",
+    "message": "i cannot provision order",
+    "response": "I understand your question, but I don't have specific information about this topic in my current knowledge base. Let me provide some general guidance:\n\nBased on your query \"i cannot provision order\", you might want to:\n- Check our FAQ section\n- Contact our support team directly\n- Provide more specific details about your issue",
+    "rating": 5,
+    "feedback": "Helpful response",
+    "messageId": "ai-1749707347030",
+    "id": "fb_1749707436518_kjat4a9gt",
+    "timestamp": "2025-06-12T05:50:36.518Z"
+  },
+  {
+    "sessionId": "anonymous",
+    "message": "",
+    "response": "Hello! I'm your AI assistant. How can I help you today? You can ask me anything or use one of the suggested commands below.",
+    "rating": 5,
+    "feedback": "Helpful",
+    "id": "fb_1749727865821_wra10dw9q",
+    "timestamp": "2025-06-12T11:31:05.821Z"
+  }
+]
