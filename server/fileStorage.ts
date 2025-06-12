@@ -35,7 +35,16 @@ export class FileStorageService {
 
   async extractZipContents(fileName: string): Promise<FileInfo[]> {
     // Handle both absolute paths and relative file names
-    const filePath = fileName.includes('/') ? fileName : path.join(this.uploadsDir, fileName);
+    let filePath: string;
+    if (path.isAbsolute(fileName)) {
+      filePath = fileName;
+    } else if (fileName.includes('/')) {
+      filePath = fileName;
+    } else {
+      filePath = path.join(this.uploadsDir, fileName);
+    }
+    
+    console.log(`Looking for file at: ${filePath}`);
     
     try {
       // Check if it's a directory (folder upload) or file (ZIP upload)

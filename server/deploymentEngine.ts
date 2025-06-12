@@ -707,11 +707,10 @@ echo "🎉 Deployment successful!"`;
         throw new Error('Project not found');
       }
 
-      const files = await fileStorage.extractZipContents(project.filePath);
       const guidance = await aiAssistant.getDeploymentGuidance(
-        files,
         project.framework || 'unknown',
-        project.name
+        'replit',
+        []
       );
 
       return guidance.steps.join('\n\n');
